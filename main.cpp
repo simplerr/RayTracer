@@ -168,6 +168,7 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(4, 5);
+	glutInitWindowSize(1024, 768);
 	glutCreateWindow("GL3 white triangle example");
 	glutDisplayFunc(display);
 
