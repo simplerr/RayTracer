@@ -1,5 +1,10 @@
 #version 450
 
+/*
+	http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
+	https://github.com/LWJGL/lwjgl3-wiki/wiki/2.6.2.-Ray-tracing-with-OpenGL-Compute-Shaders-%28Part-II%29
+*/
+
 uniform float time;
 
 layout(binding = 0, rgba8) uniform image2D framebuffer;
@@ -17,7 +22,13 @@ struct box {
 	vec3 max;
 };
 
+struct sphere {
+	vec3 center;
+	float radius;
+};
+
 #define NUM_BOXES 2
+#define NUM_SPHERES 2
 #define MAX_SCENE_BOUNDS 100.0
 
 const box boxes[] = {
@@ -25,6 +36,11 @@ const box boxes[] = {
 	{vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0)},
 	/* Box in the middle */
 	{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
+};
+
+const sphere spheres[] = {
+	{vec3(1, 3, 1), 1},
+	{vec3(3, 1, 1), 2}
 };
 
 struct hitinfo {
@@ -57,13 +73,104 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 	return found;
 }
 
+bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
+	
+	bool found = false;
+	for (int i = 0; i < NUM_SPHERES; i++) 
+	{
+		float t0, t1;
+
+		// geometric solution
+        vec3 L = spheres[i].center - origin; 
+        float tca = dot(L, dir); 
+        if (tca < 0) 
+			continue;
+
+        float d2 = dot(L, L) - tca * tca; 
+
+        if (d2 > pow(spheres[i].radius, 2)) 
+			continue;
+
+        float thc = sqrt(pow(spheres[i].radius, 2) - d2); 
+        t0 = tca - thc; 
+        t1 = tca + thc; 
+
+		if(t0 < 0)
+		{
+			float tmp = t0;
+			t0 = t1;
+			t1 = tmp;
+
+			if(t0 < 0)
+				continue;
+		}
+
+		info.lambda = vec2(t0, t1);
+		info.bi = i;
+
+		found = true;
+	}
+
+	return found;
+}
+
 vec4 trace(vec3 origin, vec3 dir) {
-	hitinfo i;
-	if (intersectBoxes(origin, dir, i)) {
-		vec4 gray = vec4(i.bi / 10.0 + 0.8);
+	hitinfo info;
+
+	dir = normalize(dir);
+
+	// spheres
+	if(intersectSpheres(origin, dir, info)) {
+		vec3 hitpoint = origin + dir * info.lambda.x;
+		vec3 normal = hitpoint - spheres[info.bi].center;
+		normal = normalize(normal);
+
+		vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
+		return color;
+
+		vec4 gray = vec4(info.bi / 10.0 + 0.8, 0, 0, 0);
 		return vec4(gray.rgb, 1.0);
 	}
-	return vec4(0.0, 0.0, 0.0, 1.0);
+
+	// boxes
+	if(intersectBoxes(origin, dir, info)) {
+		vec3 hitpoint = origin + dir * info.lambda.x;
+
+		// get the normal
+		vec3 normal;
+		vec3 localPoint = hitpoint - boxes[info.bi].min;
+		float min = 9999;
+		vec3 extents = boxes[info.bi].max - boxes[info.bi].min;
+
+		float dist = abs(extents.x - localPoint.x);
+		if(dist < min)
+		{
+			min = dist;
+			normal = sign(localPoint.x) * vec3(1, 0, 0);
+		}
+
+		dist = abs(extents.y - localPoint.y);
+		if(dist < min)
+		{
+			min = dist;
+			normal = sign(localPoint.y) * vec3(0, 1, 0);
+		}
+
+		dist = abs(extents.z - localPoint.z);
+		if(dist < min)
+		{
+			min = dist;
+			normal = sign(localPoint.z) * vec3(0, 0, 1);
+		}
+
+		return vec4(normal, 1.0);
+
+
+		vec4 gray = vec4(info.bi / 10.0 + 0.8);
+		return vec4(gray.rgb, 1.0);
+	}
+
+	return vec4(0.3, 0.3, 0.3, 1.0);
 }
 
 void main(void) {
@@ -78,7 +185,7 @@ void main(void) {
 	vec2 pos = vec2(pix) / vec2(size.x, size.y);
 	vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
 	vec4 color = trace(eye, dir);
-	//color = vec4(ray00, 1.0);
+	//color = vec4(spheres[0].center, 1.0f);
 	imageStore(framebuffer, pix, color);
 }
 

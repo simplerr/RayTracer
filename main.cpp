@@ -127,7 +127,7 @@ void dumpInfoWindows(void)
 void OnTimer(int value)
 {
 	// Move the camera using user input
-	/*if (glutKeyIsDown('a'))
+	if (keyIsDown('a'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		vec3 right_vec = CrossProduct(dir, upVector);
@@ -136,7 +136,7 @@ void OnTimer(int value)
 		cameraPos = VectorSub(cameraPos, right_vec);
 		cameraTarget = VectorSub(cameraTarget, right_vec);
 	}
-	else if (glutKeyIsDown('d'))
+	else if (keyIsDown('d'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		vec3 right_vec = CrossProduct(dir, upVector);
@@ -146,20 +146,20 @@ void OnTimer(int value)
 		cameraTarget = VectorAdd(cameraTarget, right_vec);
 	}
 
-	if (glutKeyIsDown('w'))
+	if (keyIsDown('w'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		dir = Normalize(dir);
 		cameraPos = VectorAdd(cameraPos, dir);
 		cameraTarget = VectorAdd(cameraTarget, dir);
 	}
-	if (glutKeyIsDown('s'))
+	if (keyIsDown('s'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		dir = Normalize(dir);
 		cameraPos = VectorSub(cameraPos, dir);
 		cameraTarget = VectorSub(cameraTarget, dir);
-	}*/
+	}
 
 	glutPostRedisplay();
 	glutTimerFunc(20, &OnTimer, value);
@@ -190,6 +190,7 @@ void mouseMove(int x, int y)
 
 void init(void)
 {
+	initKeymapManager();
 	glutTimerFunc(20, &OnTimer, 0);
 
 	//glutPassiveMotionFunc(&mouseMove);
