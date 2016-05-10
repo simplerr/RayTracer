@@ -10,6 +10,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define WINDOW_WIDTH 1280.0f
+#define WINDOW_HEIGHT 1024.0f
+
 void calculateRays();
 
 // Globals
@@ -108,7 +111,7 @@ GLuint generateTexture() {
 	glBindTexture(GL_TEXTURE_2D, texHandle);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 768, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	// Because we're also using this tex as an image (in order to write to it),
 	// we bind it to an image unit as well
@@ -167,8 +170,8 @@ void OnTimer(int value)
 
 void mouseMove(int x, int y)
 {
-	static int last_x = 1024 / 2;
-	static int last_y = 768 / 2;
+	static int last_x = WINDOW_WIDTH / 2;
+	static int last_y = WINDOW_HEIGHT / 2;
 
 	int delta_x = last_x - x;
 	int delta_y = last_y - y;
@@ -194,7 +197,7 @@ void init(void)
 	glutTimerFunc(20, &OnTimer, 0);
 
 	//glutPassiveMotionFunc(&mouseMove);
-	glutWarpPointer(1024 / 2, 768 / 2);
+	glutWarpPointer(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
 	unsigned int vertexBufferObjID;
 
@@ -236,7 +239,7 @@ void calculateRays()
 	mat4 viewMatrix = lookAt(cameraPos.x, cameraPos.y, cameraPos.z, cameraTarget.x, cameraTarget.y, cameraTarget.z, 0, 1, 0);
 
 	// Projection matrix
-	mat4 projectionMatrix = perspective(90, 1024.0 / 768.0, 1, 2);
+	mat4 projectionMatrix = perspective(90, WINDOW_WIDTH / WINDOW_HEIGHT, 1, 2);
 
 	// Get inverse of view*proj
 	mat4 inverseViewProjection = Mult(projectionMatrix, viewMatrix);
@@ -277,7 +280,7 @@ void display(void)
 	glUseProgram(computeProgram);
 	glUniform1f(glGetUniformLocation(computeProgram, "time"), t);
 	calculateRays();
-	glDispatchCompute(1024 / 16, 768 / 16, 1);
+	glDispatchCompute(WINDOW_WIDTH / 16, WINDOW_HEIGHT / 16, 1);
 
 	// Vertex and fragment shader
 	glUseProgram(renderProgram);
@@ -294,7 +297,7 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(4, 5);
-	glutInitWindowSize(1024, 768);
+	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	glutCreateWindow("RayTracer");
 	glutDisplayFunc(display);
 

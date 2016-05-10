@@ -127,9 +127,6 @@ vec4 trace(vec3 origin, vec3 dir) {
 
 		vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
 		return color;
-
-		vec4 gray = vec4(info.bi / 10.0 + 0.8, 0, 0, 0);
-		return vec4(gray.rgb, 1.0);
 	}
 
 	// boxes
@@ -163,11 +160,8 @@ vec4 trace(vec3 origin, vec3 dir) {
 			normal = sign(localPoint.z) * vec3(0, 0, 1);
 		}
 
-		return vec4(normal, 1.0);
-
-
-		vec4 gray = vec4(info.bi / 10.0 + 0.8);
-		return vec4(gray.rgb, 1.0);
+		vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
+		return color;
 	}
 
 	return vec4(0.3, 0.3, 0.3, 1.0);
