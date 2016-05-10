@@ -176,7 +176,7 @@ void mouseMove(int x, int y)
 	int delta_x = last_x - x;
 	int delta_y = last_y - y;
 
-	float camera_sensitivity = 0.01f;
+	float camera_sensitivity = 0.005f;
 	yaw += (float)delta_x * camera_sensitivity;
 	pitch += (float)delta_y * camera_sensitivity;
 
@@ -185,7 +185,7 @@ void mouseMove(int x, int y)
 		cosf(pitch) * cosf(yaw)
 	};
 
-	cameraPos = VectorAdd(cameraPos, dir);
+	cameraTarget = VectorAdd(cameraPos, dir);
 
 	last_x = x;
 	last_y = y;
@@ -196,7 +196,7 @@ void init(void)
 	initKeymapManager();
 	glutTimerFunc(20, &OnTimer, 0);
 
-	//glutPassiveMotionFunc(&mouseMove);
+	glutPassiveMotionFunc(&mouseMove);
 	glutWarpPointer(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
 	unsigned int vertexBufferObjID;
