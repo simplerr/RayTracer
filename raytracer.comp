@@ -3,6 +3,7 @@
 /*
 	http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
 	https://github.com/LWJGL/lwjgl3-wiki/wiki/2.6.2.-Ray-tracing-with-OpenGL-Compute-Shaders-%28Part-II%29
+	http://ray-tracing-conept.blogspot.se/2015/01/ray-box-intersection-and-normal.html
 */
 
 uniform float time;
@@ -17,30 +18,43 @@ uniform vec3 ray01;
 uniform vec3 ray10;
 uniform vec3 ray11;
 
-struct box {
+// Light source
+struct Light {
+	vec3 position;
+	vec3 direction;
+	vec3 color;
+};
+
+struct Box {
 	vec3 min;
 	vec3 max;
 };
 
-struct sphere {
+struct Sphere {
 	vec3 center;
 	float radius;
 };
 
 #define NUM_BOXES 2
 #define NUM_SPHERES 2
+#define NUM_LIGHTS 1
 #define MAX_SCENE_BOUNDS 100.0
 
-const box boxes[] = {
+const Box boxes[] = {
 	/* The ground */
 	{vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0)},
 	/* Box in the middle */
 	{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
 };
 
-const sphere spheres[] = {
+const Sphere spheres[] = {
 	{vec3(1, 3, 1), 1},
 	{vec3(3, 1, 1), 2}
+};
+
+const Light lights[] = {
+	{vec3(30, 30, 30), vec3(0, -1, 0), vec3(1, 1, 1)},
+	{vec3(30, 30, 30), vec3(1, 0, 0), vec3(0, 1, 0)}
 };
 
 struct hitinfo {
@@ -48,7 +62,7 @@ struct hitinfo {
 	int bi;
 };
 
-vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
+vec2 intersectBox(vec3 origin, vec3 dir, const Box b) {
 	vec3 tMin = (b.min - origin) / dir;
 	vec3 tMax = (b.max - origin) / dir;
 	vec3 t1 = min(tMin, tMax);
@@ -114,6 +128,38 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 	return found;
 }
 
+// Calculates the normal at the intersection point between a ray and a box
+vec3 calculateBoxNormal(vec3 hitpoint, int box_index)
+{
+	vec3 normal;
+	vec3 localPoint = hitpoint - boxes[box_index].min;
+	float min = 9999;
+	vec3 extents = boxes[box_index].max - boxes[box_index].min;
+
+	float dist = abs(extents.x - localPoint.x);
+	if(dist < min)
+	{
+		min = dist;
+		normal = sign(localPoint.x) * vec3(1, 0, 0);
+	}
+
+	dist = abs(extents.y - localPoint.y);
+	if(dist < min)
+	{
+		min = dist;
+		normal = sign(localPoint.y) * vec3(0, 1, 0);
+	}
+
+	dist = abs(extents.z - localPoint.z);
+	if(dist < min)
+	{
+		min = dist;
+		normal = sign(localPoint.z) * vec3(0, 0, 1);
+	}
+
+	return normal;
+}
+
 vec4 trace(vec3 origin, vec3 dir) {
 	hitinfo info;
 
@@ -123,10 +169,35 @@ vec4 trace(vec3 origin, vec3 dir) {
 	if(intersectSpheres(origin, dir, info)) {
 		vec3 hitpoint = origin + dir * info.lambda.x;
 		vec3 normal = hitpoint - spheres[info.bi].center;
+
 		normal = normalize(normal);
 
-		vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
-		return color;
+		//if(intersectSpheres(hitpoint, normal, info)) {
+		//	vec4 color = vec4(0, 1, 0, 1);
+		//	return color;
+		//}
+		//else {
+		//	vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
+		//	return color;
+		//}
+
+		vec3 viewDirection = hitpoint - eye;
+
+		vec3 color = vec3(0, 0, 0);	// Ambient factor
+		for(int i = 0; i < NUM_LIGHTS; i++) {
+			vec3 diffuse = dot(normal, -lights[i].direction) * lights[i].color;
+
+			vec3 specular = vec3(0, 0, 0);
+			if(dot(normal, -lights[i].direction) < 0.0)
+				specular = vec3(0, 0, 0);
+			else
+				specular = pow(max(0.0, dot(reflect(-lights[i].direction, normal), viewDirection)), 0.5f) * 0.05 * lights[i].color;		// 0.05 is the constant intensity
+
+			color += diffuse + specular;
+			
+		}
+
+		return vec4(color, 1.0f);		
 	}
 
 	// boxes
@@ -134,31 +205,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 		vec3 hitpoint = origin + dir * info.lambda.x;
 
 		// get the normal
-		vec3 normal;
-		vec3 localPoint = hitpoint - boxes[info.bi].min;
-		float min = 9999;
-		vec3 extents = boxes[info.bi].max - boxes[info.bi].min;
-
-		float dist = abs(extents.x - localPoint.x);
-		if(dist < min)
-		{
-			min = dist;
-			normal = sign(localPoint.x) * vec3(1, 0, 0);
-		}
-
-		dist = abs(extents.y - localPoint.y);
-		if(dist < min)
-		{
-			min = dist;
-			normal = sign(localPoint.y) * vec3(0, 1, 0);
-		}
-
-		dist = abs(extents.z - localPoint.z);
-		if(dist < min)
-		{
-			min = dist;
-			normal = sign(localPoint.z) * vec3(0, 0, 1);
-		}
+		vec3 normal = calculateBoxNormal(hitpoint, info.bi);
 
 		vec4 color = dot(normal, -dir) * vec4(1, 0, 0, 1);
 		return color;
@@ -178,8 +225,9 @@ void main(void) {
 
 	vec2 pos = vec2(pix) / vec2(size.x, size.y);
 	vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
+
 	vec4 color = trace(eye, dir);
-	//color = vec4(spheres[0].center, 1.0f);
+
 	imageStore(framebuffer, pix, color);
 }
 
