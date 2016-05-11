@@ -73,14 +73,14 @@ vec2 intersectBox(vec3 origin, vec3 dir, const Box b) {
 }
 
 bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
-	float smallest = MAX_SCENE_BOUNDS;
+	float closest = MAX_SCENE_BOUNDS;
 	bool found = false;
 	for (int i = 0; i < NUM_BOXES; i++) {
 		vec2 lambda = intersectBox(origin, dir, boxes[i]);
-		if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
+		if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < closest) {
 			info.lambda = lambda;
 			info.bi = i;
-			smallest = lambda.x;
+			closest = lambda.x;
 			found = true;
 		}
 	}
@@ -88,7 +88,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 }
 
 bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
-	
+	float closest = MAX_SCENE_BOUNDS;
 	bool found = false;
 	for (int i = 0; i < NUM_SPHERES; i++) 
 	{
@@ -119,8 +119,12 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 				continue;
 		}
 
-		info.lambda = vec2(t0, t1);
-		info.bi = i;
+		// Is it the closest sphere?
+		if(t0 > 0.0 && t0 < t1 && t0 < closest) {
+			info.lambda = vec2(t0, t1);
+			info.bi = i;
+			closest = t0;
+		}
 
 		found = true;
 	}
