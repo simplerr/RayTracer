@@ -252,14 +252,14 @@ void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 norma
 	specular *= att;
 }
 
-float ComputeShadow(vec3 lightPos, vec3 position)
+float ComputeShadow(vec3 lightPos, vec3 position, int index)
 {
 	float shadowFactor = 1.0;
 	vec3 lightDirection = lightPos - position;
 	lightDirection = normalize(lightDirection);
 	hitinfo tmpIntersectInfo;
-	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo))
-		shadowFactor = 0.2;
+	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo) && tmpIntersectInfo.index != index)
+		shadowFactor = 0.4;
 
 	return shadowFactor;
 }
@@ -288,7 +288,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 				float shadowFactor = 1;
 
 				// Shadow component
-				shadowFactor = ComputeShadow(lights[i].position, intersectInfo.intersection);
+				shadowFactor = ComputeShadow(lights[i].position, intersectInfo.intersection, intersectInfo.index);
 
 				if(lights[i].type == 0)			// Directional light
 				{
@@ -305,7 +305,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 
 				// Add to the final color
 				finalColor += (ambient + diffuse + specular) * shadowFactor * frac;
-				frac *= 1;
+				frac *= 0.4;
 			}	
 		}
 
