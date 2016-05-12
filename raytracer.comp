@@ -52,13 +52,13 @@ const Box boxes[] = {
 
 const Sphere spheres[] = {
 	{vec3(side/2 + 1, 8, side/2), vec3(1, 0, 0), 1},
-	{vec3(side/2 +1, 4, side/2 +1), vec3(0, 1, 0), 2},
-	{vec3(side/2 +1, 11, side/2 +1), vec3(0, 0, 1), 0.5},
-	{vec3(side/2 +3, 7, side/2 +3), vec3(0, 1, 1), 0.5}
+	{vec3(side/2 - 10, 4, side/2 +1), vec3(0, 1, 0), 2},
+	{vec3(side/2 + 5, 11, side/2 +1), vec3(0, 0, 1), 0.5},
+	{vec3(side/2 + 10, 7, side/2 +3), vec3(0, 1, 1), 0.5}
 };
 
 const Light lights[] = {
-	{vec3(side/2, 25, side/2), vec3(1, -1, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), 1},
+	{vec3(side/2, 25, side/2), vec3(1, 1, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), 0},
 	{vec3(0, 50, 0), vec3(1, 0, 0), vec3(1, 1, 1), vec3(0.2, 1, 1), 1}
 };
 
@@ -219,6 +219,29 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	}
 }
 
+void ComputeDirectionalLight(vec3 material, Light light, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
+{
+	// Calculate vector from intersection to light source
+	vec3 lightVec = normalize(light.direction);
+
+	// [TODO] Out of range
+
+	// Ambient
+	ambient = material * light.intensity.x;		// [TODO]  Add light color
+			
+	// Diffuse
+	float diffuseFactor = dot(lightVec, normal);
+
+	if(diffuseFactor > 0.0f)
+	{
+		vec3 v = reflect(-lightVec, normal);
+		float specularFactor = pow(max(dot(v, toEye), 0.0f), 32.0f);
+
+		diffuse = diffuseFactor * material * light.intensity.y;
+		specular = specularFactor * material * light.intensity.z;
+	}
+}
+
 void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
 {
 	// Calculate vector from intersection to light source
@@ -252,10 +275,16 @@ void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 norma
 	specular *= att;
 }
 
-float ComputeShadow(vec3 lightPos, vec3 position, int index)
+float ComputeShadow(Light light, vec3 position, int index)
 {
 	float shadowFactor = 1.0;
-	vec3 lightDirection = lightPos - position;
+	vec3 lightDirection;
+
+	if(light.type == 0)
+		lightDirection = light.direction;
+	else
+		lightDirection = light.position - position;
+
 	lightDirection = normalize(lightDirection);
 	hitinfo tmpIntersectInfo;
 	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo) && tmpIntersectInfo.index != index)
@@ -288,11 +317,11 @@ vec4 trace(vec3 origin, vec3 dir) {
 				float shadowFactor = 1;
 
 				// Shadow component
-				shadowFactor = ComputeShadow(lights[i].position, intersectInfo.intersection, intersectInfo.index);
+				shadowFactor = ComputeShadow(lights[i], intersectInfo.intersection, intersectInfo.index);
 
 				if(lights[i].type == 0)			// Directional light
 				{
-
+					ComputeDirectionalLight(intersectInfo.material, lights[i], intersectInfo.normal, intersectInfo.eyeDirection,  ambient, diffuse, specular);
 				}
 				else if(lights[i].type == 1)	// Point light
 				{
