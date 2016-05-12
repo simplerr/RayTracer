@@ -59,7 +59,7 @@ const Sphere spheres[] = {
 };
 
 const Light lights[] = {
-	{vec3(side/2, 25, side/2), vec3(0, -1, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), 1, 1.0},
+	{vec3(side/2, 25, side/2), vec3(0, -1, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), 1, 10.0},
 	{vec3(0, 50, 0), vec3(1, 0, 0), vec3(1, 1, 1), vec3(0.2, 1, 1), 1, 1.0}
 };
 
@@ -220,35 +220,21 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	}
 }
 
-void ComputeDirectionalLight(vec3 material, Light light, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
+void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
 {
-	// Calculate vector from intersection to light source
-	vec3 lightVec = normalize(-light.direction);	// [NOTE] The - sign
-
-	// [TODO] Out of range
-
-	// Ambient
-	ambient = material * light.intensity.x;			// [TODO]  Add light color
-			
-	// Diffuse
-	float diffuseFactor = dot(lightVec, normal);
-
-	if(diffuseFactor > 0.0f)
+	vec3 lightVec;
+	float lightDistance;
+	
+	// Directional light
+	if(light.type == 0)		
+		lightVec = normalize(-light.direction);	
+	// Spot & point light
+	else			
 	{
-		vec3 v = reflect(-lightVec, normal);
-		float specularFactor = pow(max(dot(v, toEye), 0.0f), 32.0f);
-
-		diffuse = diffuseFactor * material * light.intensity.y;
-		specular = specularFactor * material * light.intensity.z;
+		lightVec = light.position - intersection;
+		lightDistance = length(lightVec);
+		lightVec = normalize(lightVec);
 	}
-}
-
-void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
-{
-	// Calculate vector from intersection to light source
-	vec3 lightVec = light.position - intersection;
-	float lightDistance = length(lightVec);
-	lightVec = normalize(lightVec);
 
 	// [TODO] Out of range
 
@@ -267,49 +253,24 @@ void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 norma
 		specular = specularFactor * material * light.intensity.z;
 	}
 
-	// Attenuate
-	vec3 tmpAtt = vec3(0.001f);
-	float att = 1.0f / dot(tmpAtt, vec3(1.0f, lightDistance, lightDistance*lightDistance));	// light.att
-
-	diffuse *= att;
-	specular *= att;
-}
-
-void ComputeSpotLight(vec3 material, Light light, vec3 intersection, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
-{
-	// Calculate vector from intersection to light source
-	vec3 lightVec = light.position - intersection;
-	float lightDistance = length(lightVec);
-	lightVec = normalize(lightVec);
-
-	// [TODO] Out of range
-
-	// Ambient
-	ambient = material * light.intensity.x;		// [TODO]  Add light color
-			
-	// Diffuse
-	float diffuseFactor = dot(lightVec, normal);
-
-	if(diffuseFactor > 0.0f)
+	// Point or spot light
+	if(light.type == 1 || light.type == 2)
 	{
-		vec3 v = reflect(-lightVec, normal);
-		float specularFactor = pow(max(dot(v, toEye), 0.0f), 32.0f);
+		// Scale by spotlight factor 
+		float spot;
+		if(light.type == 1)
+			spot = 1.0;
+		else if(light.type == 2)
+			spot = pow(max(dot(-lightVec, light.direction), 0.0f), light.spot);
 
-		diffuse = diffuseFactor * material * light.intensity.y;
-		specular = specularFactor * material * light.intensity.z;
+		// Attenuate
+		vec3 tmpAtt = vec3(0.001f);
+		float att = spot / dot(tmpAtt, vec3(1.0f, lightDistance, lightDistance*lightDistance));	// light.att
+
+		ambient *= spot;
+		diffuse *= att;
+		specular *= att;
 	}
-
-	// Scale by spotlight factor and
-	light.spot = 10;
-	float spot = pow(max(dot(-lightVec, light.direction), 0.0f), light.spot);
-
-	// Attenuate
-	vec3 tmpAtt = vec3(0.001f);
-	float att = spot / dot(tmpAtt, vec3(1.0f, lightDistance, lightDistance*lightDistance));	// light.att
-
-	ambient *= spot;
-	diffuse *= att;
-	specular *= att;
 }
 
 float ComputeShadow(Light light, vec3 position, int index)
@@ -356,18 +317,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 				// Shadow component
 				shadowFactor = ComputeShadow(lights[i], intersectInfo.intersection, intersectInfo.index);
 
-				if(lights[i].type == 0)			// Directional light
-				{
-					ComputeDirectionalLight(intersectInfo.material, lights[i], intersectInfo.normal, intersectInfo.eyeDirection,  ambient, diffuse, specular);
-				}
-				else if(lights[i].type == 1)	// Point light
-				{
-					ComputePointLight(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
-				}
-				else if(lights[i].type == 2)	// Spot light
-				{
-					ComputeSpotLight(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
-				}
+				ComputeLighting(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
 
 				// Add to the final color
 				finalColor += (ambient + diffuse + specular) * shadowFactor * frac;
