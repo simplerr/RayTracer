@@ -9,6 +9,17 @@
 #include "common/VectorUtils3.h"
 #include <cstdio>
 #include <cstdlib>
+#include <sstream>
+#include <fstream>
+#include <string>
+/*
+	http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
+	https://github.com/LWJGL/lwjgl3-wiki/wiki/2.6.2.-Ray-tracing-with-OpenGL-Compute-Shaders-%28Part-II%29
+	http://ray-tracing-conept.blogspot.se/2015/01/ray-box-intersection-and-normal.html
+
+	https://www.ics.uci.edu/~gopi/CS211B/RayTracing%20tutorial.pdf
+	http://www.flipcode.com/archives/Raytracing_Topics_Techniques-Part_1_Introduction.shtml
+*/
 
 #define WINDOW_WIDTH 1280.0f
 #define WINDOW_HEIGHT 1024.0f
@@ -58,11 +69,15 @@ GLuint loadCompute(const char* filename)
 	GLuint cs = glCreateShader(GL_COMPUTE_SHADER);
 
 	// Load the compute shader from file
-	char* cs_source = readFile((char *)filename);
-	if (cs_source == NULL)
-		fprintf(stderr, "Failed to read %s from disk.\n", filename);
+	std::ifstream fin(filename);
+	std::stringstream ss;
+	ss << fin.rdbuf();
+	std::string shaderText = ss.str();
 
-	glShaderSource(cs, 1, &cs_source, NULL);
+	const char* shader = shaderText.c_str();
+	const GLint length = shaderText.length();
+
+	glShaderSource(cs, 1, &shader, &length);
 	glCompileShader(cs);
 
 	// Error checking

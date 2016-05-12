@@ -1,14 +1,5 @@
 #version 450
 
-/*
-	http://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
-	https://github.com/LWJGL/lwjgl3-wiki/wiki/2.6.2.-Ray-tracing-with-OpenGL-Compute-Shaders-%28Part-II%29
-	http://ray-tracing-conept.blogspot.se/2015/01/ray-box-intersection-and-normal.html
-
-	https://www.ics.uci.edu/~gopi/CS211B/RayTracing%20tutorial.pdf
-	http://www.flipcode.com/archives/Raytracing_Topics_Techniques-Part_1_Introduction.shtml
-*/
-
 uniform float time;
 
 layout(binding = 0, rgba8) uniform image2D framebuffer;
@@ -26,6 +17,7 @@ struct Light {
 	vec3 position;
 	vec3 direction;
 	vec3 color;
+	int type;	// 0 = directional, 1 = point light, 2 = spot light
 };
 
 struct Box {
@@ -40,7 +32,7 @@ struct Sphere {
 	float radius;
 };
 
-#define NUM_BOXES 5
+#define NUM_BOXES 1	
 #define NUM_SPHERES 4
 #define NUM_LIGHTS 1
 #define MAX_SCENE_BOUNDS 100000.0
@@ -57,15 +49,15 @@ const Box boxes[] = {
 };
 
 const Sphere spheres[] = {
-	{vec3(1, 8, 1), vec3(1, 0, 0), 1},
+	{vec3(side/2 + 1, 8, side), vec3(1, 0, 0), 1},
 	{vec3(1, 4, 1), vec3(0, 1, 0), 2},
 	{vec3(1, 11, 1), vec3(0, 0, 1), 0.5},
 	{vec3(3, 7, 3), vec3(0, 1, 1), 0.5}
 };
 
 const Light lights[] = {
-	{vec3(-20, 20, -20), vec3(1, -1, 1), vec3(1, 1, 1)},
-	{vec3(0, 50, 0), vec3(1, 0, 0), vec3(1, 1, 1)}
+	{vec3(-20, 20, -20), vec3(1, -1, 1), vec3(1, 1, 1), 1},
+	{vec3(0, 50, 0), vec3(1, 0, 0), vec3(1, 1, 1), 1}
 };
 
 struct hitinfo {
@@ -225,6 +217,14 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	}
 }
 
+void ComputePointLight(vec3 material, Light light, vec3 position, vec3 normal, vec3 toEye, out vec3 ambient, out vec3 diffuse, out vec3 specular)
+{
+	vec3 a;		
+	vec3 b;	
+	vec3 c;
+	vec4 asdasdadda;
+}
+
 vec4 trace(vec3 origin, vec3 dir) {
 	hitinfo intersectInfo;
 
@@ -243,9 +243,16 @@ vec4 trace(vec3 origin, vec3 dir) {
 
 			for(int i = 0; i < NUM_LIGHTS; i++)
 			{
-				vec3 ambient = vec3(0.2);//0.1, 0.1, 0.1);
+				vec3 ambient = vec3(0.2);
 				vec3 diffuse = vec3(0.0, 0.0, 0.0);
 				vec3 specular = vec3(0.0, 0.0, 0.0);
+
+				if(lights[i].type == 1)	// Point light
+				{
+					ComputePointLight(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
+				}
+
+				
 				float shadowFactor = 1;
 
 				vec3 lightDirection = lights[i].position - intersectInfo.intersection;
@@ -295,7 +302,8 @@ vec4 trace(vec3 origin, vec3 dir) {
 	return vec4(0.3, 0.3, 0.3, 1.0);
 }
 
-void main(void) {
+void main(void) 
+{
 	ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 size = imageSize(framebuffer);
 	if (pix.x >= size.x || pix.y >= size.y) {
