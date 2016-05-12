@@ -252,6 +252,18 @@ void ComputePointLight(vec3 material, Light light, vec3 intersection, vec3 norma
 	specular *= att;
 }
 
+float ComputeShadow(vec3 lightPos, vec3 position)
+{
+	float shadowFactor = 1.0;
+	vec3 lightDirection = lightPos - position;
+	lightDirection = normalize(lightDirection);
+	hitinfo tmpIntersectInfo;
+	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo))
+		shadowFactor = 0.2;
+
+	return shadowFactor;
+}
+
 vec4 trace(vec3 origin, vec3 dir) {
 	hitinfo intersectInfo;
 
@@ -273,8 +285,10 @@ vec4 trace(vec3 origin, vec3 dir) {
 				vec3 ambient = vec3(0.0);
 				vec3 diffuse = vec3(0.0, 0.0, 0.0);
 				vec3 specular = vec3(0.0, 0.0, 0.0);
+				float shadowFactor = 1;
 
-				// [TODO] Shadow
+				// Shadow component
+				shadowFactor = ComputeShadow(lights[i].position, intersectInfo.intersection);
 
 				if(lights[i].type == 0)			// Directional light
 				{
@@ -290,46 +304,9 @@ vec4 trace(vec3 origin, vec3 dir) {
 				}
 
 				// Add to the final color
-				finalColor += (ambient + diffuse + specular) * frac;
+				finalColor += (ambient + diffuse + specular) * shadowFactor * frac;
 				frac *= 1;
-
-				continue;
-				
-				float shadowFactor = 1;
-
-				vec3 lightDirection = lights[i].position - intersectInfo.intersection;
-				lightDirection = normalize(lightDirection);
-
-				// Shadow component
-				hitinfo tmpIntersectInfo;
-				if(closestObjectIntersection(intersectInfo.intersection + lightDirection*1, lightDirection, tmpIntersectInfo))
-				{
-					// Shadowed
-					//ambient = vec3(0, 0, 0);
-					shadowFactor = 0.2;
-				}
-		
-				// Diffuse component
-				float diffuseFactor = dot(intersectInfo.normal, -lights[i].direction);
-
-				if(diffuseFactor < 0)
-					diffuse = vec3(0, 0, 0);					
-				else
-					diffuse = diffuseFactor * lights[i].color * intersectInfo.material;
-
-				// Specular component
-				specular = vec3(0, 0, 0);
-				if(diffuseFactor < 0.0)
-					specular = vec3(0, 0, 0);
-				else
-					specular = pow(max(0.0, dot(reflect(-lights[i].direction, intersectInfo.normal), intersectInfo.eyeDirection)), 0.5f) * 0.05 * lights[i].color * intersectInfo.material;		// 0.05 is the constant intensity
-
-				color += clamp(ambient * intersectInfo.material + diffuse + specular, 0.0, 1.0) * shadowFactor;
-				finalColor += color * frac;		
-				frac *= 1;
-			}
-
-			//return vec4(color, 1.0f);		
+			}	
 		}
 
 		// Calculate the reflection ray
