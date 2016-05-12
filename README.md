@@ -1,4 +1,7 @@
 # RayTracer
 
 Todo:
-- make the code platform independt (with preprocessor)
+- Add checkers floor
+- Uniform variables in shader
+- Moving lights and cameras
+
