@@ -59,12 +59,13 @@ const Sphere spheres[] = {
 	{vec3(side/2 + 5, 8, side/2 + 5), vec3(1, 0, 0), 1},
 	{vec3(side/2 - 10, 4, side/2 + 1), vec3(0, 1, 0), 2},
 	{vec3(side/2 + 5, 11, side/2 + 1), vec3(0, 0, 1), 0.5},
-	{vec3(side/2 + 10, 7, side/2 + 3), vec3(0, 1, 1), 0.5}
+	{vec3(side/2 + 10, 7, side/2 + 3), vec3(1, 1, 0), 0.5}
 };
 
 const Light lights[] = {
-	{vec3(side/2, 25, side/2), vec3(0, -1, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 10.0},
-	{vec3(0, 50, 0), vec3(1, 0, 0), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 1.0}
+	{vec3(side/2, 25, side/2), vec3(0, 0, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 10.0},
+	{vec3(side/2, 25, 25), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0.2, 1, 1), DIRECTIONAL_LIGHT, 10.0},
+	//{vec3(side/2, 25, 25), vec3(1, -1, 1), vec3(0, 1, 0), vec3(0.2, 1, 1), DIRECTIONAL_LIGHT, 10.0}
 };
 
 struct hitinfo {
@@ -241,7 +242,7 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 	// [TODO] Out of range
 
 	// Ambient
-	ambient = material * light.intensity.x;		// [TODO]  Add light color
+	ambient = material * light.color * light.intensity.x;		// [TODO]  Add light color
 			
 	// Diffuse
 	float diffuseFactor = dot(lightVec, normal);
@@ -251,8 +252,8 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 		vec3 v = reflect(-lightVec, normal);
 		float specularFactor = pow(max(dot(v, toEye), 0.0f), 32.0f);
 
-		diffuse = diffuseFactor * material * light.intensity.y;
-		specular = specularFactor * material * light.intensity.z;
+		diffuse = diffuseFactor * material * light.color * light.intensity.y;
+		specular = specularFactor * material * light.color * light.intensity.z;
 	}
 
 	if(light.type == POINT_LIGHT || light.type == SPOT_LIGHT)
