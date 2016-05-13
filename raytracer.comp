@@ -27,6 +27,7 @@ struct Box {
 	vec3 max;
 	vec3 material;
 	float reflectivity;
+	bool isDiffuse;
 };
 
 struct Sphere {
@@ -34,6 +35,7 @@ struct Sphere {
 	vec3 material;
 	float radius;
 	float reflectivity;
+	bool isDiffuse;
 };
 
 #define DIRECTIONAL_LIGHT 0
@@ -44,30 +46,30 @@ struct Sphere {
 #define NUM_SPHERES 4
 #define NUM_LIGHTS 1
 #define MAX_SCENE_BOUNDS 100000.0
-#define TRACE_DEPTH 4
+#define TRACE_DEPTH 3
 
 // Ray types 
 #define DIFFUSE_RAY 0
 #define REFLECTION_RAY 1
 #define REFRACTION_RAY 2
-#define SHADOW_RAY 3
+#define SHADOW_RAY 5
 
 float side = 50.0;
 
 const Box boxes[] = {
-	{vec3(0, -0.1, 0), vec3(side, 0.0, side), vec3(0.3, 0.3, 0.3), 1},
-	{vec3(0, side , 0), vec3(side, side-0.1, side), vec3(0.5, 0, 0), 0},
-	{vec3(-0.1, 0, 0), vec3(0, side, side), vec3(0, 0.5, 0), 0},
-	{vec3(side, 0, 0), vec3(side-0.1, side, side), vec3(0.0, 0.0, 0.5), 0},
-	{vec3(0, 0, -0.1), vec3(side, side, 0), vec3(0.5, 0.5, 0), 0},
-	{vec3(0, 0, side), vec3(side, side, side-0.1), vec3(0, 0.5, 0.5), 0},
+	{vec3(0, -0.1, 0), vec3(side, 0.0, side), vec3(0.3, 0.3, 0.3), 1, false},
+	{vec3(0, side , 0), vec3(side, side-0.1, side), vec3(0.5, 0, 0), 0, true},
+	{vec3(-0.1, 0, 0), vec3(0, side, side), vec3(0, 0.5, 0), 0, true},
+	{vec3(side, 0, 0), vec3(side-0.1, side, side), vec3(0.0, 0.0, 0.5), 0, true},
+	{vec3(0, 0, -0.1), vec3(side, side, 0), vec3(0.5, 0.5, 0), 0, true},
+	{vec3(0, 0, side), vec3(side, side, side-0.1), vec3(0, 0.5, 0.5), 0, true},
 };
 
 const Sphere spheres[] = {
-	{vec3(side/2 + 5, 8, side/2 + 5), vec3(1, 0, 0), 4, 0},
-	{vec3(side/2 - 10, 4, side/2 + 1), vec3(0, 0, 0), 2, 1},
-	{vec3(side/2 + 5, 11, side/2 + 1), vec3(0, 0, 1), 0.5, 1},
-	{vec3(side/2 + 10, 7, side/2 + 3), vec3(1, 1, 0), 0.5, 1}
+	{vec3(side/2 + 5, 8, side/2 + 5), vec3(1, 0, 0), 4, 1, false},
+	{vec3(side/2 - 10, 4, side/2 + 1), vec3(0, 0, 0), 2, 0, false},
+	{vec3(side/2 + 5, 11, side/2 + 1), vec3(0, 0, 1), 0.5, 1, false},
+	{vec3(side/2 + 10, 7, side/2 + 3), vec3(1, 1, 0), 0.5, 1, true}
 };
 
 const Light lights[] = {
@@ -85,6 +87,7 @@ struct hitinfo {
 	vec3 eyeDirection;
 	vec3 material;
 	float reflectivity;
+	bool isDiffuse;
 };
 
 struct Ray
@@ -107,7 +110,7 @@ struct Node {
 };
 
 // Instead of recursion a stack is used
-Node stack[TRACE_DEPTH * 2];
+Node stack[TRACE_DEPTH * 2 + 1];
 
 vec2 intersectBox(vec3 origin, vec3 dir, const Box b) {
 	vec3 tMin = (b.min - origin) / dir;
@@ -167,6 +170,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 			info.type = 1;
 			info.eyeDirection = normalize(eye - info.intersection);
 			info.reflectivity = boxes[i].reflectivity;
+			info.isDiffuse = boxes[i].isDiffuse;
 
 			closest = lambda.x;
 			found = true;
@@ -219,6 +223,7 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 			info.material = spheres[info.index].material;
 			info.type = 0;
 			info.reflectivity = spheres[info.index].reflectivity;
+			info.isDiffuse = spheres[info.index].isDiffuse;
 
 			// Update the closest distance
 			closest = t0;
@@ -331,50 +336,52 @@ float ComputeShadow(Light light, vec3 position, int index)
 
 vec3 RayTrace(Ray ray)
 {
-	vec3 finalColor = vec3(0, 0, 0);
-
 	int currentNode = 0;
 	int numNodes = 1;		// Works as stack pointer	
+
+	float frac = 1.0;
 	
 	// Start with only the primary ray
 	stack[currentNode].ray = ray;		
-	stack[currentNode].depth = 0;
+	stack[currentNode].depth = 1;
 
-	for(int currentNode = 0; currentNode < numNodes; currentNode++)
+	for(currentNode = 0; currentNode < numNodes; currentNode++)
 	{
 		// Find closest object intersecting the ray
 		hitinfo intersectInfo;
 		if(closestObjectIntersection(stack[currentNode].ray.origin, stack[currentNode].ray.direction, intersectInfo)) 
 		{
 			// Only create new rays if max depth isn't exceeded
-			if(stack[currentNode].depth < TRACE_DEPTH ) // && 0 == 1
+			if(!intersectInfo.isDiffuse && stack[currentNode].depth < TRACE_DEPTH ) // && 0 == 1
 			{
+				//stack[currentNode].color = vec3(1, 0, 0);
 				stack[currentNode].isDiffuse = false;
-				stack[currentNode].refraction = 0.98;
-				stack[currentNode].reflection = 0.98;
+				stack[currentNode].refraction = 1.0;
+				stack[currentNode].reflection = intersectInfo.reflectivity;
 
 				// Add reflection ray to top of the stack
 				vec3 reflection = reflect(stack[currentNode].ray.direction, intersectInfo.normal);
 				stack[numNodes + 0].ray = Ray(intersectInfo.intersection, reflection, REFLECTION_RAY);
 
 				// Add refraction ray to top of the stack
-				vec3 refraction = refract(stack[currentNode].ray.direction, intersectInfo.normal, 0.98); // [NOTE] 0.98 is temp
-				stack[numNodes + 1].ray = Ray(intersectInfo.intersection, refraction, REFRACTION_RAY);
+				vec3 refraction = refract(stack[currentNode].ray.direction, intersectInfo.normal, 0.99); // [NOTE] 0.98 is temp
+				stack[numNodes + 1].ray = Ray(intersectInfo.intersection + refraction, refraction, REFRACTION_RAY);
 
 				// Set depth and parent on the new rays
-				stack[numNodes + 0].depth = stack[numNodes + 1].depth = stack[currentNode].depth + 1;
-				stack[numNodes + 0].parent = stack[numNodes + 1].parent = currentNode;
+				stack[numNodes + 0].depth = stack[currentNode].depth + 1;
+				stack[numNodes + 0].parent = currentNode;
+				stack[numNodes + 1].depth = stack[currentNode].depth + 1;			
+				stack[numNodes + 1].parent = currentNode;
 
 				// Two new rays added
 				numNodes += 2;
+
+				// [TODO] Compute the diffuse color even if it reflects and refracts
 			}
 			// Max depth reached, calculate color
 			else
 			{	
 				vec3 finalColor = vec3(0);
-					
-				// Ambient factor
-				vec3 color = vec3(0, 0, 0);	
 
 				for(int i = 0; i < NUM_LIGHTS; i++)
 				{
@@ -388,11 +395,10 @@ vec3 RayTrace(Ray ray)
 
 					ComputeLighting(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
 
-					//specular = vec3(0);
-
 					// Add to the final color
-					finalColor += (ambient + diffuse + specular) * shadowFactor;// * parentReflectivity * frac;
-					//frac *= 1.0;//0.4;
+					finalColor += (ambient + diffuse + specular) * frac;//* shadowFactor;// * parentReflectivity * frac;
+					//finalColor = vec3(0, 1, 0);
+					//frac *= 0.4;
 				}
 
 				stack[currentNode].color = finalColor;
@@ -402,7 +408,7 @@ vec3 RayTrace(Ray ray)
 		else
 		{
 			// Ray didn't hit anything, set node color to black
-			stack[currentNode].color = vec3(0.0);
+			stack[currentNode].color = vec3(1, 1, 1);
 			stack[currentNode].isDiffuse = true;
 		}
 	}	
@@ -414,6 +420,9 @@ vec3 RayTrace(Ray ray)
 		int parent = stack[child].parent;
 
 		// [NOTE] Missing somehting here	
+		// [TODO] This should also combine refraction and reflection
+		if(!stack[child].isDiffuse)
+			color = stack[child].refractionColor * (1.0 - stack[child].reflection) + stack[child].reflectionColor * stack[child].reflection;
 
 		if(stack[child].ray.type == REFLECTION_RAY)
 			stack[parent].reflectionColor = color;
@@ -427,17 +436,18 @@ vec3 RayTrace(Ray ray)
 	else
 	{
 		// Fresnel equation
-		return primaryNode.refractionColor * primaryNode.refraction + primaryNode.reflectionColor * (1.0 - primaryNode.reflection);
+		//return primaryNode.refractionColor;//vec3(1, 0, 0);//primaryNode.color;
+		return primaryNode.refractionColor * (1.0 - primaryNode.reflection) + primaryNode.reflectionColor * primaryNode.reflection;
 	}
 
 	//return vec4(stack[0].color, 1.0);
 	//return vec4(finalColor, 1.0);	
 }
 
-vec4 trace(vec3 origin, vec3 dir) {
+vec4 trace(Ray ray) {
 	hitinfo intersectInfo;
 
-	dir = normalize(dir);
+	//dir = normalize(dir);
 
 	vec3 finalColor = vec3(0, 0, 0);
 	float frac = 1.0;
@@ -446,7 +456,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 	// Get first sphere intersecting the ray
 	for(int bounce = 0; bounce < TRACE_DEPTH; bounce++)
 	{
-		if(closestObjectIntersection(origin, dir, intersectInfo)) 
+		if(closestObjectIntersection(ray.origin, ray.direction, intersectInfo)) 
 		{
 			// Ambient factor
 			vec3 color = vec3(0, 0, 0);	
@@ -471,18 +481,12 @@ vec4 trace(vec3 origin, vec3 dir) {
 			}	
 
 			// Calculate the reflection ray
-			// Used in the next iteration
-			vec3 reflection = reflect(dir, intersectInfo.normal);
-			origin = intersectInfo.intersection;
+			vec3 reflection = reflect(ray.direction, intersectInfo.normal);
+			ray = Ray(intersectInfo.intersection, reflection, REFLECTION_RAY);
 
-			//dir.z *= -1;
-			float indice = 0.98;//1.0 / 1.31;
-			//dir = refract(dir, intersectInfo.normal, indice);
-
-			dir = reflection;
-
-			// Some kind of offset is needed
-			//origin += dir;
+			// Calculate the refraction ray
+			vec3 refraction = refract(ray.direction, intersectInfo.normal, 0.98); // [NOTE] 0.98 is temp
+			ray = Ray(intersectInfo.intersection + refraction, refraction, REFRACTION_RAY);
 
 			parentReflectivity *= intersectInfo.reflectivity;
 
@@ -508,7 +512,7 @@ void main(void)
 
 	Ray ray = {eye, normalize(dir), 0};
 	vec4 color = vec4(RayTrace(ray), 1.0);
-	//vec4 color = trace(eye, dir);
+	//vec4 color = trace(ray);
 
 	imageStore(framebuffer, pix, color);
 }
