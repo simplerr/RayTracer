@@ -149,7 +149,7 @@ void OnTimer(int value)
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		vec3 right_vec = CrossProduct(dir, upVector);
-		right_vec = Normalize(right_vec);
+		right_vec = Normalize(right_vec) * cameraSpeed;
 
 		cameraPos = VectorSub(cameraPos, right_vec);
 		cameraTarget = VectorSub(cameraTarget, right_vec);
@@ -158,7 +158,7 @@ void OnTimer(int value)
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
 		vec3 right_vec = CrossProduct(dir, upVector);
-		right_vec = Normalize(right_vec);
+		right_vec = Normalize(right_vec) * cameraSpeed;
 
 		cameraPos = VectorAdd(cameraPos, right_vec);
 		cameraTarget = VectorAdd(cameraTarget, right_vec);
@@ -167,14 +167,14 @@ void OnTimer(int value)
 	if (keyIsDown('w'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		dir = Normalize(dir);
+		dir = Normalize(dir) * cameraSpeed;
 		cameraPos = VectorAdd(cameraPos, dir);
 		cameraTarget = VectorAdd(cameraTarget, dir);
 	}
 	if (keyIsDown('s'))
 	{
 		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		dir = Normalize(dir);
+		dir = Normalize(dir) * cameraSpeed;
 		cameraPos = VectorSub(cameraPos, dir);
 		cameraTarget = VectorSub(cameraTarget, dir);
 	}
