@@ -55,6 +55,10 @@ struct Sphere {
 #define SHADOW_RAY 5
 
 // Uniforms
+uniform int maxTraceDepth;
+uniform int numLights;
+uniform int numBoxes;
+uniform int numSpheres;
 uniform Light lightList[10];
 
 float side = 50.0;
@@ -381,7 +385,7 @@ vec3 RayTrace(Ray ray)
 		if(closestObjectIntersection(stack[currentNode].ray.origin, stack[currentNode].ray.direction, intersectInfo)) 
 		{
 			// Only create new rays if max depth isn't exceeded
-			if(!intersectInfo.isDiffuse && stack[currentNode].depth < TRACE_DEPTH ) // && 0 == 1
+			if(!intersectInfo.isDiffuse && stack[currentNode].depth < maxTraceDepth) // && 0 == 1
 			{
 				//stack[currentNode].color = vec3(1, 0, 0);
 				stack[currentNode].isDiffuse = false;

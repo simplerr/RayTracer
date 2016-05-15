@@ -62,6 +62,35 @@ void RayTracer::Init()
 void RayTracer::Update(int value)
 {
 	camera->Update(value);
+
+	CalculateRays();
+
+	UpdateUniforms();
+}
+
+void RayTracer::UpdateUniforms()
+{
+	// Upload to compute shader
+	glUseProgram(computeProgram);
+
+	// Ray trace depth
+	glUniform1i(glGetUniformLocation(computeProgram, "maxTraceDepth"), maxTraceDepth);
+
+	// Lights
+	glUniform1i(glGetUniformLocation(computeProgram, "numLights"), lights.size());
+
+	// Spheres
+	glUniform1i(glGetUniformLocation(computeProgram, "numSpheres"), spheres.size());
+
+	// Boxes
+	glUniform1i(glGetUniformLocation(computeProgram, "numBoxes"), boxes.size());
+
+	// Eye and frustum rays
+	glUniform3f(glGetUniformLocation(computeProgram, "eye"), camera->position.x, camera->position.y, camera->position.z);
+	glUniform3f(glGetUniformLocation(computeProgram, "ray00"), frustumRays.ray00.x, frustumRays.ray00.y, frustumRays.ray00.z);
+	glUniform3f(glGetUniformLocation(computeProgram, "ray01"), frustumRays.ray01.x, frustumRays.ray01.y, frustumRays.ray01.z);
+	glUniform3f(glGetUniformLocation(computeProgram, "ray10"), frustumRays.ray10.x, frustumRays.ray10.y, frustumRays.ray10.z);
+	glUniform3f(glGetUniformLocation(computeProgram, "ray11"), frustumRays.ray11.x, frustumRays.ray11.y, frustumRays.ray11.z);
 }
 
 void RayTracer::Render()
@@ -72,7 +101,7 @@ void RayTracer::Render()
 	// Note: is this needed all the time???
 	glUseProgram(computeProgram);
 	glUniform1f(glGetUniformLocation(computeProgram, "time"), t);
-	CalculateRays();
+	//CalculateRays();
 	glDispatchCompute(WINDOW_WIDTH / 16, WINDOW_HEIGHT / 16, 1);
 
 	// Vertex and fragment shader
@@ -94,8 +123,6 @@ void RayTracer::MouseMove(int x, int y)
 void RayTracer::CalculateRays()
 {
 	// Camera/view matrix
-	//vec3 cameraPos = vec3(3, 2, 7);
-	//vec3 cameraTarget = vec3(0, 0.5, 0);
 	mat4 viewMatrix = lookAt(camera->position.x, camera->position.y, camera->position.z, camera->target.x, camera->target.y, camera->target.z, 0, 1, 0);
 
 	// Projection matrix
@@ -122,13 +149,10 @@ void RayTracer::CalculateRays()
 	ray11 = ray11 / ray11.w;
 	ray11 -= camera->position;
 
-	// Upload to compute shader
-	glUseProgram(computeProgram);
-	glUniform3f(glGetUniformLocation(computeProgram, "eye"), camera->position.x, camera->position.y, camera->position.z);
-	glUniform3f(glGetUniformLocation(computeProgram, "ray00"), ray00.x, ray00.y, ray00.z);
-	glUniform3f(glGetUniformLocation(computeProgram, "ray01"), ray01.x, ray01.y, ray01.z);
-	glUniform3f(glGetUniformLocation(computeProgram, "ray10"), ray10.x, ray10.y, ray10.z);
-	glUniform3f(glGetUniformLocation(computeProgram, "ray11"), ray11.x, ray11.y, ray11.z);
+	frustumRays.ray00 = ray00;
+	frustumRays.ray10 = ray10;
+	frustumRays.ray01 = ray01;
+	frustumRays.ray11 = ray11;
 }
 
 GLuint RayTracer::LoadComputeShader(const char* filename)
