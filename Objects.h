@@ -1,6 +1,10 @@
 #pragma once
 #include "common/VectorUtils3.h"
 
+#define DIRECTIONAL_LIGHT 0
+#define POINT_LIGHT 1 
+#define SPOT_LIGHT 2
+
 class Material
 {
 public:
@@ -15,6 +19,7 @@ class Light
 public:
 	void SetPosition(vec3 pos);
 	void SetDirection(vec3 dir);
+	void SetColor(vec3 color);
 	void SetIntensity(vec3 intensity);
 	void SetType(int type);
 	void SetSpot(float spot);
@@ -31,6 +36,7 @@ public:
 class Sphere
 {
 public:
+	Sphere(float x, float y, float z, float _radius, Material material);
 	void SetCenter(vec3 center);
 	void SetRadius(float radius);
 	void SetMaterial(Material material);
@@ -44,12 +50,13 @@ public:
 class Box
 {
 public:
+	Box(vec3 _min, vec3 _max, Material _material);
 	void SetMin(vec3 min);
 	void SetMax(vec3 max);
 	void SetMaterial(Material material);
 //private:
 
 	Material material;
-	vec3 min;
-	vec3 max;
+	vec3 minPos;
+	vec3 maxPos;
 };

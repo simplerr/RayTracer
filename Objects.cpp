@@ -10,6 +10,11 @@ void Light::SetDirection(vec3 dir)
 	direction = dir;
 }
 
+void Light::SetColor(vec3 color)
+{
+	this->color = color;
+}
+
 void Light::SetIntensity(vec3 intensity)
 {
 	this->intensity = intensity;
@@ -23,6 +28,12 @@ void Light::SetType(int type)
 void Light::SetSpot(float spot)
 {
 	this->spot = spot;
+}
+
+Sphere::Sphere(float x, float y, float z, float _radius, Material _material) 
+	: center(vec3(x, y, z)), material(_material), radius(_radius)
+{
+
 }
 
 void Sphere::SetCenter(vec3 center)
@@ -40,14 +51,20 @@ void Sphere::SetMaterial(Material material)
 	this->material = material;
 }
 
+Box::Box(vec3 _min, vec3 _max, Material _material)
+	: minPos(_min), maxPos(_max), material(_material)
+{
+
+}
+
 void Box::SetMin(vec3 min)
 {
-	this->min = min;
+	this->minPos = min;
 }
 
 void Box::SetMax(vec3 max)
 {
-	this->max = max;
+	this->maxPos = max;
 }
 
 void Box::SetMaterial(Material material)

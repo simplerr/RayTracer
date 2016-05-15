@@ -32,6 +32,7 @@ public:
 	~RayTracer();
 
 	void Init();
+	void InitObjects();
 	void Update(int value);
 	void Render();
 	void UpdateUniforms();
@@ -61,6 +62,7 @@ private:
 
 	// Uniform data
 	int maxTraceDepth = 4;
+	int roomSize = 50;
 
 	vector<Light> lights;
 	vector<Sphere> spheres;

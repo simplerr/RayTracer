@@ -1,10 +1,10 @@
 #version 450
 
-uniform float time;
-
 layout(binding = 0, rgba8) uniform image2D framebuffer;
 
 layout (local_size_x = 16, local_size_y = 16) in;
+
+uniform float time;
 
 uniform vec3 eye;
 uniform vec3 ray00;
@@ -59,7 +59,10 @@ uniform int maxTraceDepth;
 uniform int numLights;
 uniform int numBoxes;
 uniform int numSpheres;
+
 uniform Light lightList[10];
+uniform Sphere sphereList[10];
+uniform Box boxList[10];
 
 float side = 50.0;
 
@@ -134,9 +137,9 @@ vec2 intersectBox(vec3 origin, vec3 dir, const Box b) {
 vec3 calculateBoxNormal(vec3 hitpoint, int box_index)
 {
 	vec3 normal;
-	vec3 localPoint = hitpoint - boxes[box_index].min;
+	vec3 localPoint = hitpoint - boxList[box_index].min;
 	float min = 9999;
-	vec3 extents = boxes[box_index].max - boxes[box_index].min;
+	vec3 extents = boxList[box_index].max - boxList[box_index].min;
 
 	float dist = abs(extents.x - localPoint.x);
 	if(dist < min)
@@ -166,15 +169,15 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 	info.lambda = vec2(MAX_SCENE_BOUNDS, MAX_SCENE_BOUNDS);
 	float closest = MAX_SCENE_BOUNDS;
 	bool found = false;
-	for (int i = 0; i < NUM_BOXES; i++) {
-		vec2 lambda = intersectBox(origin, dir, boxes[i]);
+	for (int i = 0; i < numBoxes; i++) {
+		vec2 lambda = intersectBox(origin, dir, boxList[i]);
 		if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < closest) {
 			// Calculate hit information
 			info.lambda = lambda;
 			info.index = i;
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = calculateBoxNormal(info.intersection, info.index);
-			info.material = boxes[i].material;
+			info.material = boxes[i].material;	// [TODO]
 			info.type = 1;
 			info.eyeDirection = normalize(eye - info.intersection);
 			info.reflectivity = boxes[i].reflectivity;
@@ -191,22 +194,22 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 	info.lambda = vec2(MAX_SCENE_BOUNDS, MAX_SCENE_BOUNDS);
 	float closest = MAX_SCENE_BOUNDS;
 	bool found = false;
-	for (int i = 0; i < NUM_SPHERES; i++) 
+	for (int i = 0; i < numSpheres; i++) 
 	{
 		float t0, t1;
 
 		// geometric solution
-        vec3 L = spheres[i].center - origin; 
+        vec3 L = sphereList[i].center - origin; 
         float tca = dot(L, dir); 
         if (tca < 0) 
 			continue;
 
         float d2 = dot(L, L) - tca * tca; 
 
-        if (d2 > pow(spheres[i].radius, 2)) 
+        if (d2 > pow(sphereList[i].radius, 2)) 
 			continue;
 
-        float thc = sqrt(pow(spheres[i].radius, 2) - d2); 
+        float thc = sqrt(pow(sphereList[i].radius, 2) - d2); 
         t0 = tca - thc; 
         t1 = tca + thc; 
 
@@ -226,7 +229,7 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 			info.lambda = vec2(t0, t1);
 			info.index = i;
 			info.intersection = origin + dir * info.lambda.x;
-			info.normal = normalize(info.intersection - spheres[info.index].center);
+			info.normal = normalize(info.intersection - sphereList[info.index].center);
 			info.eyeDirection = normalize(eye - info.intersection);
 			info.material = spheres[info.index].material;
 			info.type = 0;
@@ -354,9 +357,9 @@ vec3 CalculateColor(hitinfo intersectInfo)
 		float shadowFactor = 1;
 
 		// Shadow component
-		shadowFactor = ComputeShadow(lights[i], intersectInfo.intersection, intersectInfo.index);
+		shadowFactor = ComputeShadow(lightList[i], intersectInfo.intersection, intersectInfo.index);
 
-		ComputeLighting(intersectInfo.material, lights[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
+		ComputeLighting(intersectInfo.material, lightList[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
 
 		// Add to the final color
 		finalColor += (ambient + diffuse + specular);//* shadowFactor;// * parentReflectivity * frac;
