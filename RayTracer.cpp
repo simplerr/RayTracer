@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include "RayTracer.h"
+#include  "Camera.h"
 
 RayTracer::RayTracer()
 {
@@ -12,12 +13,19 @@ RayTracer::RayTracer()
 
 RayTracer::~RayTracer()
 {
-
+	delete camera;
 }
 
 void RayTracer::Init()
 {
-	initKeymapManager();
+	// Init camera
+	camera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
+	camera->position = vec3(3, 2, 7);
+	camera->target = vec3(0, 0.5, 0);
+	camera->up = vec3(0, 1, 0);
+	camera->speed = 0.3f;
+	camera->pitch = 0.0f;
+	camera->yaw = -3.14f / 2.0f;
 
 	glutWarpPointer(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
@@ -53,40 +61,7 @@ void RayTracer::Init()
 
 void RayTracer::Update(int value)
 {
-	// Move the camera using user input
-	if (keyIsDown('a'))
-	{
-		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		vec3 right_vec = CrossProduct(dir, upVector);
-		right_vec = Normalize(right_vec) * cameraSpeed;
-
-		cameraPos = VectorSub(cameraPos, right_vec);
-		cameraTarget = VectorSub(cameraTarget, right_vec);
-	}
-	else if (keyIsDown('d'))
-	{
-		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		vec3 right_vec = CrossProduct(dir, upVector);
-		right_vec = Normalize(right_vec) * cameraSpeed;
-
-		cameraPos = VectorAdd(cameraPos, right_vec);
-		cameraTarget = VectorAdd(cameraTarget, right_vec);
-	}
-
-	if (keyIsDown('w'))
-	{
-		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		dir = Normalize(dir) * cameraSpeed;
-		cameraPos = VectorAdd(cameraPos, dir);
-		cameraTarget = VectorAdd(cameraTarget, dir);
-	}
-	if (keyIsDown('s'))
-	{
-		vec3 dir = VectorSub(cameraTarget, cameraPos);
-		dir = Normalize(dir) * cameraSpeed;
-		cameraPos = VectorSub(cameraPos, dir);
-		cameraTarget = VectorSub(cameraTarget, dir);
-	}
+	camera->Update(value);
 }
 
 void RayTracer::Render()
@@ -113,25 +88,7 @@ void RayTracer::Render()
 
 void RayTracer::MouseMove(int x, int y)
 {
-	static int last_x = WINDOW_WIDTH / 2;
-	static int last_y = WINDOW_HEIGHT / 2;
-
-	int delta_x = last_x - x;
-	int delta_y = last_y - y;
-
-	float camera_sensitivity = 0.005f;
-	yaw += (float)delta_x * camera_sensitivity;
-	pitch += (float)delta_y * camera_sensitivity;
-
-	vec3 dir = { cosf(pitch) * sinf(yaw),
-		sinf(pitch),
-		cosf(pitch) * cosf(yaw)
-	};
-
-	cameraTarget = VectorAdd(cameraPos, dir);
-
-	last_x = x;
-	last_y = y;
+	camera->MouseMove(x, y);
 }
 
 void RayTracer::CalculateRays()
@@ -139,7 +96,7 @@ void RayTracer::CalculateRays()
 	// Camera/view matrix
 	//vec3 cameraPos = vec3(3, 2, 7);
 	//vec3 cameraTarget = vec3(0, 0.5, 0);
-	mat4 viewMatrix = lookAt(cameraPos.x, cameraPos.y, cameraPos.z, cameraTarget.x, cameraTarget.y, cameraTarget.z, 0, 1, 0);
+	mat4 viewMatrix = lookAt(camera->position.x, camera->position.y, camera->position.z, camera->target.x, camera->target.y, camera->target.z, 0, 1, 0);
 
 	// Projection matrix
 	mat4 projectionMatrix = perspective(90, WINDOW_WIDTH / WINDOW_HEIGHT, 1, 2);
@@ -151,23 +108,23 @@ void RayTracer::CalculateRays()
 	// Calculate rays
 	vec4 ray00 = MultVec4(inverseViewProjection, vec4(-1, -1, 0, 1));
 	ray00 = ray00 / ray00.w;
-	ray00 -= cameraPos;
+	ray00 -= camera->position;
 
 	vec4 ray10 = MultVec4(inverseViewProjection, vec4(+1, -1, 0, 1));
 	ray10 = ray10 / ray10.w;
-	ray10 -= cameraPos;
+	ray10 -= camera->position;
 
 	vec4 ray01 = MultVec4(inverseViewProjection, vec4(-1, +1, 0, 1));
 	ray01 = ray01 / ray01.w;
-	ray01 -= cameraPos;
+	ray01 -= camera->position;
 
 	vec4 ray11 = MultVec4(inverseViewProjection, vec4(+1, +1, 0, 1));
 	ray11 = ray11 / ray11.w;
-	ray11 -= cameraPos;
+	ray11 -= camera->position;
 
 	// Upload to compute shader
 	glUseProgram(computeProgram);
-	glUniform3f(glGetUniformLocation(computeProgram, "eye"), cameraPos.x, cameraPos.y, cameraPos.z);
+	glUniform3f(glGetUniformLocation(computeProgram, "eye"), camera->position.x, camera->position.y, camera->position.z);
 	glUniform3f(glGetUniformLocation(computeProgram, "ray00"), ray00.x, ray00.y, ray00.z);
 	glUniform3f(glGetUniformLocation(computeProgram, "ray01"), ray01.x, ray01.y, ray01.z);
 	glUniform3f(glGetUniformLocation(computeProgram, "ray10"), ray10.x, ray10.y, ray10.z);

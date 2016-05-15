@@ -5,6 +5,8 @@
 #define WINDOW_WIDTH 1280.0f
 #define WINDOW_HEIGHT 1024.0f
 
+class Camera;
+
 static float quadData[] = {
 	-1.0f, -1.0f,
 	-1.0f, 1.0f,
@@ -39,12 +41,7 @@ private:
 	GLuint computeTexture;
 
 	// Camera stuff
-	vec3 cameraPos = { 3, 2, 7 };
-	vec3 cameraTarget = { 0, 0.5, 0 };
-	vec3 upVector = { 0, 1, 0 };
-	float cameraSpeed = 0.3f;
-	float pitch = 0.0f;
-	float yaw = -3.14 / 2.0;
+	Camera* camera;
 
 	// Vertex array object
 	unsigned int vertexArrayObjID;

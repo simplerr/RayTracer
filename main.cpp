@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
 	glutTimerFunc(20, &OnTimer, 0);
 	glutPassiveMotionFunc(&MouseMove);
 
+	initKeymapManager();
+
 	rayTracer.Init();
 
 	glutMainLoop();
