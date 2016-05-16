@@ -74,22 +74,22 @@ uniform Box boxList[10];
 
 float side = 50.0;
 
-Box boxes[] = {
-	{vec3(0, -0.1, 0), vec3(side, 0.0, side), { vec3(0.3, 0.3, 0.3), 1, false }},
-	{vec3(0, side , 0), vec3(side, side-0.1, side), {vec3(0.5, 0, 0), 0, true}},
-	{vec3(-0.1, 0, 0), vec3(0, side, side), {vec3(0, 0.5, 0), 0, true}},
-	{vec3(side, 0, 0), vec3(side-0.1, side, side), {vec3(0.0, 0.0, 0.5), 0, true}},
-	{vec3(0, 0, -0.1), vec3(side, side, 0), {vec3(0.5, 0.5, 0), 0, true}},
-	{vec3(0, 0, side), vec3(side, side, side-0.1), {vec3(0, 0.5, 0.5), 0, true}},
-	{vec3(side/2, side/2, side/2), vec3(side/2 + 3, side/2 + 3, side/2 + 3), {vec3(1, 1, 1), 1, false}},
-};
+//Box boxes[] = {
+//	{vec3(0, -0.1, 0), vec3(side, 0.0, side), { vec3(0.3, 0.3, 0.3), 1, false }},
+//	{vec3(0, side , 0), vec3(side, side-0.1, side), {vec3(0.5, 0, 0), 0, true}},
+//	{vec3(-0.1, 0, 0), vec3(0, side, side), {vec3(0, 0.5, 0), 0, true}},
+//	{vec3(side, 0, 0), vec3(side-0.1, side, side), {vec3(0.0, 0.0, 0.5), 0, true}},
+//	{vec3(0, 0, -0.1), vec3(side, side, 0), {vec3(0.5, 0.5, 0), 0, true}},
+//	{vec3(0, 0, side), vec3(side, side, side-0.1), {vec3(0, 0.5, 0.5), 0, true}},
+//	{vec3(side/2, side/2, side/2), vec3(side/2 + 3, side/2 + 3, side/2 + 3), {vec3(1, 1, 1), 1, false}},
+//};
 
-const Sphere spheres[] = {
-	{vec3(side/2 + 5, 8, side/2 + 5), 4, {vec3(1, 0, 0), 1, false}},
-	{vec3(side/2 - 10, 4, side/2 + 1), 3, {vec3(0, 0, 0), 0, false}},
-	{vec3(side/2 + 5, 11, side/2 + 1), 0.5, {vec3(0, 0, 1), 1, false}},
-	{vec3(side/2 + 10, 7, side/2 + 3), 0.5, {vec3(1, 1, 0), 1, true}}
-};
+//const Sphere spheres[] = {
+//	{vec3(side/2 + 5, 8, side/2 + 5), 4, {vec3(1, 0, 0), 1, false}},
+//	{vec3(side/2 - 10, 4, side/2 + 1), 3, {vec3(0, 0, 0), 0, false}},
+//	{vec3(side/2 + 5, 11, side/2 + 1), 0.5, {vec3(0, 0, 1), 1, false}},
+//	{vec3(side/2 + 10, 7, side/2 + 3), 0.5, {vec3(1, 1, 0), 1, true}}
+//};
 
 const Light lights[] = {
 	{vec3(side/2, 25, side/2), vec3(0, 0, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 1.0},
@@ -344,7 +344,7 @@ float ComputeShadow(Light light, vec3 position, int index)
 
 	lightDirection = normalize(lightDirection);
 	hitinfo tmpIntersectInfo;
-	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo) && tmpIntersectInfo.index != index)
+	if(closestObjectIntersection(position + lightDirection*1, lightDirection, tmpIntersectInfo)) // && tmpIntersectInfo.index != index
 	{
 		// Obstructing object be infront of light source
 		if(dot(tmpIntersectInfo.intersection - light.position, lightDirection) < 0)
@@ -370,7 +370,7 @@ vec3 CalculateColor(hitinfo intersectInfo)
 		ComputeLighting(intersectInfo.material, lightList[i], intersectInfo.intersection, intersectInfo.normal, intersectInfo.eyeDirection, ambient, diffuse, specular);
 
 		// Add to the final color
-		finalColor += (ambient + diffuse + specular);//* shadowFactor;// * parentReflectivity * frac;
+		finalColor += (ambient + diffuse + specular)* shadowFactor;// * parentReflectivity * frac;
 		//finalColor = vec3(0, 1, 0);
 		//frac *= 0.4;
 	}
