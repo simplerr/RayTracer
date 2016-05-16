@@ -1,7 +1,7 @@
 #include "Objects.h"
 
-Material::Material(vec3 _color, float _reflectivity, int _isDiffuse)
-	: color(_color), reflectivity(_reflectivity), isDiffuse(_isDiffuse)
+Material::Material(vec3 _color, float _reflectivity, int _isDiffuse, int _special)
+	: color(_color), reflectivity(_reflectivity), isDiffuse(_isDiffuse), special(_special)
 {
 	
 }

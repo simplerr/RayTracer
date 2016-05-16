@@ -81,7 +81,7 @@ void RayTracer::InitObjects()
 	spheres.push_back(Sphere(roomSize / 2 + 5, 8, roomSize / 2 + 5, 4, Material(vec3(1, 0, 0), 1, false)));
 	spheres.push_back(Sphere(roomSize / 2 - 10, 10, roomSize / 2 + 1, 6, Material(vec3(0, 0, 0), 0, false)));
 	spheres.push_back(Sphere(roomSize / 2 + 5, 11, roomSize / 2 + 1, 0.5, Material(vec3(0, 0, 1), 1, false)));
-	spheres.push_back(Sphere(roomSize / 2 + 10, 7, roomSize / 2 + 3, 0.5, Material(vec3(1, 1, 0), 1, true)));
+	spheres.push_back(Sphere(roomSize / 2 + 15, 7, roomSize / 2 + 6, 3, Material(vec3(1, 1, 0), 1, true, 1)));
 
 	// Add boxes
 	/*{vec3(0, -0.1, 0), vec3(side, 0.0, side), vec3(0.3, 0.3, 0.3), 1, true},
@@ -90,7 +90,7 @@ void RayTracer::InitObjects()
 	{ vec3(side, 0, 0), vec3(side - 0.1, side, side), vec3(0.0, 0.0, 0.5), 0, true },
 	{ vec3(0, 0, -0.1), vec3(side, side, 0), vec3(0.5, 0.5, 0), 0, true },
 	{ vec3(0, 0, side), vec3(side, side, side - 0.1), vec3(0, 0.5, 0.5), 0, true },*/
-	boxes.push_back(Box(vec3(0, -0.1, 0), vec3(roomSize, 0.0, roomSize), Material(vec3(0.3, 0.3, 0.3), 1, true)));
+	boxes.push_back(Box(vec3(0, -0.1, 0), vec3(roomSize, 0.0, roomSize), Material(vec3(0.3, 0.3, 0.3), 1, true, 1)));
 	boxes.push_back(Box(vec3(0, roomSize, 0), vec3(roomSize, roomSize - 0.1, roomSize), Material(vec3(0.5, 0, 0), 0, true)));
 	boxes.push_back(Box(vec3(-0.1, 0, 0), vec3(0, roomSize, roomSize), Material(vec3(0, 0.5, 0), 0, true)));
 	boxes.push_back(Box(vec3(roomSize, 0, 0), vec3(roomSize - 0.1, roomSize, roomSize), Material(vec3(0.0, 0.0, 0.5), 0, true)));
@@ -154,12 +154,14 @@ void RayTracer::UpdateUniforms()
 		string matColor = "sphereList[" + to_string(i) + "].material.color";
 		string matReflectivity = "sphereList[" + to_string(i) + "].material.reflectivity";
 		string matIsDiffuse = "sphereList[" + to_string(i) + "].material.isDiffuse";
+		string matSpecial = "sphereList[" + to_string(i) + "].material.special";
 
 		glUniform3f(glGetUniformLocation(computeProgram, center.c_str()), spheres[i].center.x, spheres[i].center.y, spheres[i].center.z);	
 		glUniform1f(glGetUniformLocation(computeProgram, radius.c_str()), spheres[i].radius);
 		glUniform3f(glGetUniformLocation(computeProgram, matColor.c_str()), spheres[i].material.color.x, spheres[i].material.color.y, spheres[i].material.color.z);
 		glUniform1f(glGetUniformLocation(computeProgram, matReflectivity.c_str()), spheres[i].material.reflectivity);
 		glUniform1i(glGetUniformLocation(computeProgram, matIsDiffuse.c_str()), spheres[i].material.isDiffuse);
+		glUniform1i(glGetUniformLocation(computeProgram, matSpecial.c_str()), spheres[i].material.special);
 	}
 
 	// Boxes
@@ -171,12 +173,14 @@ void RayTracer::UpdateUniforms()
 		string matColor = "boxList[" + to_string(i) + "].material.color";
 		string matReflectivity = "boxList[" + to_string(i) + "].material.reflectivity";
 		string matIsDiffuse = "boxList[" + to_string(i) + "].material.isDiffuse";
+		string matSpecial = "boxList[" + to_string(i) + "].material.special";
 
 		glUniform3f(glGetUniformLocation(computeProgram, min.c_str()), boxes[i].minPos.x, boxes[i].minPos.y, boxes[i].minPos.z);
 		glUniform3f(glGetUniformLocation(computeProgram, max.c_str()), boxes[i].maxPos.x, boxes[i].maxPos.y, boxes[i].maxPos.z);
 		glUniform3f(glGetUniformLocation(computeProgram, matColor.c_str()), boxes[i].material.color.x, boxes[i].material.color.y, boxes[i].material.color.z);
 		glUniform1f(glGetUniformLocation(computeProgram, matReflectivity.c_str()), boxes[i].material.reflectivity);
 		glUniform1i(glGetUniformLocation(computeProgram, matIsDiffuse.c_str()), boxes[i].material.isDiffuse);
+		glUniform1i(glGetUniformLocation(computeProgram, matSpecial.c_str()), boxes[i].material.special);
 	}
 
 	// Eye and frustum rays

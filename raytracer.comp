@@ -17,6 +17,7 @@ struct Material
 	vec3 color;
 	float reflectivity;
 	bool isDiffuse;
+	int special;			// 0 = standard, 1 = checkers
 };
 
 // Light source
@@ -177,6 +178,21 @@ vec3 calculateBoxNormal(vec3 hitpoint, int box_index)
 	return normal;
 }
 
+vec3 GetMaterialColor(vec3 position, Material material)
+{
+	if(material.special == 1)	// Checkers
+	{
+		int square = int(floor(position.x)) + int(floor(position.z));
+		
+		if(square % 2 == 0)
+			return material.color;
+		else
+			return vec3(1);
+	}	
+
+	return material.color;
+}
+
 bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 	info.lambda = vec2(MAX_SCENE_BOUNDS, MAX_SCENE_BOUNDS);
 	float closest = MAX_SCENE_BOUNDS;
@@ -189,7 +205,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 			info.index = i;
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = calculateBoxNormal(info.intersection, info.index);
-			info.material = boxList[i].material.color;	// [TODO]
+			info.material = GetMaterialColor(info.intersection, boxList[i].material);
 			info.type = 1;
 			info.eyeDirection = normalize(eye - info.intersection);
 			info.reflectivity = boxList[i].material.reflectivity;
@@ -243,7 +259,7 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = normalize(info.intersection - sphereList[info.index].center);
 			info.eyeDirection = normalize(eye - info.intersection);
-			info.material = sphereList[info.index].material.color;
+			info.material = GetMaterialColor(info.intersection, sphereList[info.index].material);
 			info.type = 0;
 			info.reflectivity = sphereList[info.index].material.reflectivity;
 			info.isDiffuse = sphereList[info.index].material.isDiffuse;
