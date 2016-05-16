@@ -65,7 +65,7 @@ void RayTracer::InitObjects()
 {
 	// Add lights
 	Light light1;
-	light1.SetPosition(vec3(roomSize / 2, roomSize / 2, roomSize / 2));
+	light1.SetPosition(vec3(roomSize / 2 + 5, 15, roomSize / 2 + 5));
 	light1.SetDirection(vec3(0, 0, 1));
 	light1.SetColor(vec3(1, 1, 1));
 	light1.SetIntensity(vec3(0.2, 1, 1));

@@ -288,16 +288,19 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 	return found;
 }
 
-bool IntersectLights(vec3 origin, vec3 dir)
+bool IntersectLights(vec3 origin, vec3 dir, out float dist)
 {
+	dist = MAX_SCENE_BOUNDS;
+
 	for (int i = 0; i < numLights; i++) 
 	{
 		vec2 lambda;
 
 		// Is it the closest sphere?
-		Sphere sphere = {lightList[i].position, 20, {vec3(1, 0, 0), 1, true, 0}};
+		Sphere sphere = {lightList[i].position, 1, {vec3(1, 0, 0), 1, true, 0}};
 		if(SphereIntersection(sphere, origin, dir, lambda))
 		{
+			dist = lambda.x;
 			return true;
 		}
 	}
@@ -316,20 +319,21 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	bool boxIntersection = intersectBoxes(origin, dir, boxInfo);
 
 	// [NOTE][TODO] Temporary
-	bool lightIntersection = IntersectLights(origin, dir);
+	float lightDist = MAX_SCENE_BOUNDS;
+	bool lightIntersection = IntersectLights(origin, dir, lightDist);
 
 	// No intersection
 	if(!sphereIntersection && !boxIntersection && !lightIntersection)
 		return false;
 
 	// A sphere is closest
-	if(sphereInfo.lambda.x < boxInfo.lambda.x)
+	if(sphereInfo.lambda.x < boxInfo.lambda.x && sphereInfo.lambda.x < lightDist)
 	{
 		info = sphereInfo;
 		return true;
 	}
 	// A box is closest
-	else if(boxInfo.lambda.x < sphereInfo.lambda.x)
+	else if(boxInfo.lambda.x < sphereInfo.lambda.x && boxInfo.lambda.x < lightDist)
 	{
 		info = boxInfo;
 		return true;
@@ -429,7 +433,7 @@ vec3 CalculateColor(hitinfo intersectInfo)
 	vec3 finalColor = vec3(0);
 
 	if(intersectInfo.type == 2)	// Light
-		return vec3(1);
+		return vec3(1, 1, 0);
 
 	for(int i = 0; i < numLights; i++)
 	{
