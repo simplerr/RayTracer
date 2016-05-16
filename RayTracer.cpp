@@ -20,7 +20,7 @@ void RayTracer::Init()
 {
 	// Init camera
 	camera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
-	camera->position = vec3(3, 2, 7);
+	camera->position = vec3(3, 20, 7);
 	camera->target = vec3(0, 0.5, 0);
 	camera->up = vec3(0, 1, 0);
 	camera->speed = 0.3f;
@@ -74,28 +74,18 @@ void RayTracer::InitObjects()
 	lights.push_back(light1);
 
 	// Add spheres
-	/*{vec3(side / 2 + 5, 8, side / 2 + 5), vec3(1, 0, 0), 4, 1, false},
-	{ vec3(side / 2 - 10, 4, side / 2 + 1), vec3(0, 0, 0), 2, 0, false },
-	{ vec3(side / 2 + 5, 11, side / 2 + 1), vec3(0, 0, 1), 0.5, 1, false },
-	{ vec3(side / 2 + 10, 7, side / 2 + 3), vec3(1, 1, 0), 0.5, 1, true }*/
 	spheres.push_back(Sphere(roomSize / 2 + 5, 8, roomSize / 2 + 5, 4, Material(vec3(1, 0, 0), 1, false)));
 	spheres.push_back(Sphere(roomSize / 2 - 10, 10, roomSize / 2 + 1, 6, Material(vec3(0, 0, 0), 0, false)));
 	spheres.push_back(Sphere(roomSize / 2 + 5, 11, roomSize / 2 + 1, 0.5, Material(vec3(0, 0, 1), 1, false)));
 	spheres.push_back(Sphere(roomSize / 2 + 15, 7, roomSize / 2 + 6, 3, Material(vec3(1, 1, 0), 1, true, 1)));
 
 	// Add boxes
-	/*{vec3(0, -0.1, 0), vec3(side, 0.0, side), vec3(0.3, 0.3, 0.3), 1, true},
-	{ vec3(0, side , 0), vec3(side, side - 0.1, side), vec3(0.5, 0, 0), 0, true },
-	{ vec3(-0.1, 0, 0), vec3(0, side, side), vec3(0, 0.5, 0), 0, true },
-	{ vec3(side, 0, 0), vec3(side - 0.1, side, side), vec3(0.0, 0.0, 0.5), 0, true },
-	{ vec3(0, 0, -0.1), vec3(side, side, 0), vec3(0.5, 0.5, 0), 0, true },
-	{ vec3(0, 0, side), vec3(side, side, side - 0.1), vec3(0, 0.5, 0.5), 0, true },*/
 	boxes.push_back(Box(vec3(0, -0.1, 0), vec3(roomSize, 0.0, roomSize), Material(vec3(0.3, 0.3, 0.3), 1, true, 1)));
 	boxes.push_back(Box(vec3(0, roomSize, 0), vec3(roomSize, roomSize - 0.1, roomSize), Material(vec3(0.5, 0, 0), 0, true)));
-	boxes.push_back(Box(vec3(-0.1, 0, 0), vec3(0, roomSize, roomSize), Material(vec3(0, 0.5, 0), 0, true)));
-	boxes.push_back(Box(vec3(roomSize, 0, 0), vec3(roomSize - 0.1, roomSize, roomSize), Material(vec3(0.0, 0.0, 0.5), 0, true)));
-	boxes.push_back(Box(vec3(0, 0, -0.1), vec3(roomSize, roomSize, 0), Material(vec3(0.5, 0.5, 0), 0, true)));
-	boxes.push_back(Box(vec3(0, 0, roomSize), vec3(roomSize, roomSize, roomSize - 0.1), Material(vec3(0, 0.5, 0.5), 0, true)));
+	boxes.push_back(Box(vec3(-0.1, 0, 0), vec3(0, roomSize, roomSize), Material(vec3(0, 0.5, 0), 1, true)));
+	boxes.push_back(Box(vec3(roomSize, 0, 0), vec3(roomSize - 0.1, roomSize, roomSize), Material(vec3(0.0, 0.0, 0.5), 1, true)));
+	boxes.push_back(Box(vec3(0, 0, -0.1), vec3(roomSize, roomSize, 0), Material(vec3(0.5, 0.5, 0), 1, true)));
+	boxes.push_back(Box(vec3(0, 0, roomSize), vec3(roomSize, roomSize, roomSize - 0.1), Material(vec3(0, 0.5, 0.5), 1, true)));
 
 	UpdateUniforms();
 }
@@ -106,7 +96,26 @@ void RayTracer::Update(int value)
 
 	CalculateRays();
 
-	//UpdateUniforms();
+	UpdateUniforms();
+
+	// Update the selected object
+	if (selectedObject != -1)
+	{
+		char modifier = 'q';
+		if (keyIsDown(modifier) && keyIsDown('x'))
+			spheres[selectedObject].center.x -= moveSpeed;
+		else if (keyIsDown('x'))
+			spheres[selectedObject].center.x += moveSpeed;
+		if (keyIsDown(modifier) && keyIsDown('y'))
+			spheres[selectedObject].center.y -= moveSpeed;
+		else if (keyIsDown('y'))
+			spheres[selectedObject].center.y += moveSpeed;
+		if (keyIsDown(modifier) && keyIsDown('z'))
+			spheres[selectedObject].center.z -= moveSpeed;
+		else if (keyIsDown('z'))
+			spheres[selectedObject].center.z += moveSpeed;
+		
+	}
 
 	// Eye and frustum rays
 	glUseProgram(computeProgram);
@@ -211,6 +220,104 @@ void RayTracer::Render()
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glutSwapBuffers();
+}
+
+bool RayTracer::RaySphereIntersection(const Ray& ray, const Sphere& sphere, Hitinfo& hitinfo)
+{
+	float t0, t1;
+
+	vec3 L = sphere.center - ray.origin;
+	float tca = DotProduct(L, ray.direction);
+	if (tca < 0)
+		return false;
+
+	float d2 = DotProduct(L, L) - tca * tca;
+
+	if (d2 > pow(sphere.radius, 2))
+		return false;
+
+	float thc = sqrt(pow(sphere.radius, 2) - d2);
+	t0 = tca - thc;
+	t1 = tca + thc;
+
+	if (t0 < 0)
+	{
+		float tmp = t0;
+		t0 = t1;
+		t1 = tmp;
+
+		if (t0 < 0)
+			return false;
+	}
+
+	if (t0 > 0.0 && t0 < t1)
+	{
+		hitinfo.distance = t0;
+		return true;
+	}
+
+	return false;
+}
+
+bool RayTracer::ClosestObjectIntersection(Ray ray, Hitinfo& hitinfo)
+{
+	float closest = 9999999;
+	bool found = false;
+
+	for (int i = 0; i < spheres.size(); i++)
+	{
+		Hitinfo tmpHitInfo;
+		if (RaySphereIntersection(ray, spheres[i], tmpHitInfo))
+		{
+			if (tmpHitInfo.distance < closest)
+			{
+				// Hitinfo...
+				hitinfo = tmpHitInfo;
+				hitinfo.index = i;
+				closest = tmpHitInfo.distance;
+				found = true;
+			}
+		}
+	}
+
+	return found;
+}
+
+Ray RayTracer::GetWorldPickingRay(int x, int y)
+{
+	// Camera/view matrix
+	mat4 viewMatrix = lookAt(camera->position.x, camera->position.y, camera->position.z, camera->target.x, camera->target.y, camera->target.z, 0, 1, 0);
+
+	// Projection matrix
+	mat4 projectionMatrix = perspective(90, WINDOW_WIDTH / WINDOW_HEIGHT, 1, 2);
+
+	// Get inverse of view*proj
+	mat4 inverseViewProjection = Mult(projectionMatrix, viewMatrix);
+	inverseViewProjection = InvertMat4(inverseViewProjection);
+
+	float vx = (+2.0f * x / WINDOW_WIDTH - 1);
+	float vy = (-2.0f * y / WINDOW_HEIGHT + 1);
+
+	vec4 rayDir = MultVec4(inverseViewProjection, vec4(vx, vy, 0, 1));
+	rayDir = rayDir / rayDir.w;
+	rayDir -= camera->position;
+	rayDir = Normalize(vec3(rayDir.x, rayDir.y, rayDir.z));
+
+	return Ray(camera->position, vec3(rayDir.x, rayDir.y, rayDir.z));
+}
+
+void RayTracer::MousePressed(int button, int state, int x, int y)
+{
+	// Find intersecting sphere
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+	{
+		Ray ray = GetWorldPickingRay(x, y);
+		Hitinfo hitinfo;
+		if (ClosestObjectIntersection(ray, hitinfo))
+		{
+			selectedObject = hitinfo.index;
+		}
+	}
 }
 
 void RayTracer::MouseMove(int x, int y)

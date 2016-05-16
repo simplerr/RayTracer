@@ -17,6 +17,19 @@ static float quadData[] = {
 	1.0f, 1.0f
 };
 
+struct Ray
+{
+	Ray(vec3 o, vec3 d) : origin(o), direction(d) {}
+	vec3 origin;
+	vec3 direction;
+};
+
+struct Hitinfo
+{
+	float distance;
+	int index;		// Sphere index
+};
+
 struct FrustumRays
 {
 	vec4 ray00;
@@ -37,8 +50,12 @@ public:
 	void Render();
 	void UpdateUniforms();
 
+	void MousePressed(int button, int state, int x, int y);
 	void MouseMove(int x, int y);
 	void CalculateRays();
+	bool ClosestObjectIntersection(Ray ray, Hitinfo& hitinfo);
+	bool RaySphereIntersection(const Ray& ray, const Sphere& sphere, Hitinfo& hitinfo);
+	Ray GetWorldPickingRay(int x, int y);
 
 	GLuint LoadComputeShader(const char* filename);
 	GLuint GenerateTexture();
@@ -67,4 +84,7 @@ private:
 	vector<Light> lights;
 	vector<Sphere> spheres;
 	vector<Box> boxes;
+
+	int selectedObject = -1;
+	float moveSpeed = 0.2f;
 };

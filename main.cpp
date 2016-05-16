@@ -40,6 +40,11 @@ void MouseMove(int x, int y)
 	rayTracer.MouseMove(x, y);
 }
 
+void MousePressed(int button, int state, int x, int y)
+{
+	rayTracer.MousePressed(button, state, x, y);
+}
+
 void Display(void)
 {
 	rayTracer.Render();
@@ -62,6 +67,7 @@ int main(int argc, char *argv[])
 
 	glutTimerFunc(20, &OnTimer, 0);
 	glutPassiveMotionFunc(&MouseMove);
+	glutMouseFunc(&MousePressed);
 
 	initKeymapManager();
 
