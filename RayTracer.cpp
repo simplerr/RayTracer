@@ -65,13 +65,25 @@ void RayTracer::InitObjects()
 {
 	// Add lights
 	Light light1;
-	light1.SetPosition(vec3(roomSize / 2 + 5, 15, roomSize / 2 + 5));
-	light1.SetDirection(vec3(0, 0, 1));
+	light1.SetPosition(vec3(roomSize / 2, 15, roomSize / 2));
+	light1.SetDirection(vec3(0, -1, 0));
 	light1.SetColor(vec3(1, 1, 1));
 	light1.SetIntensity(vec3(0.2, 1, 1));
-	light1.SetType(POINT_LIGHT);
+	light1.SetType(SPOT_LIGHT);
 	light1.SetSpot(1.0f);
+	light1.SetSpecularFactor(1.0f);
 	lights.push_back(light1);
+
+	// Add lights
+	Light light2;
+	light2.SetPosition(vec3(5, 15, 5));
+	light2.SetDirection(vec3(1, -1, 1));
+	light2.SetColor(vec3(1, 1, 1));
+	light2.SetIntensity(vec3(0.2, 1, 1));
+	light2.SetType(POINT_LIGHT);
+	light2.SetSpot(1.0f);
+	light2.SetSpecularFactor(1.0f);
+	lights.push_back(light2);
 
 	// Add spheres
 	spheres.push_back(Sphere(roomSize / 2 + 5, 8, roomSize / 2 + 5, 4, Material(vec3(1, 0, 0), 1, false)));
@@ -102,18 +114,59 @@ void RayTracer::Update(int value)
 	if (selectedObject != -1)
 	{
 		char modifier = 'q';
-		if (keyIsDown(modifier) && keyIsDown('x'))
-			spheres[selectedObject].center.x -= moveSpeed;
-		else if (keyIsDown('x'))
-			spheres[selectedObject].center.x += moveSpeed;
-		if (keyIsDown(modifier) && keyIsDown('y'))
-			spheres[selectedObject].center.y -= moveSpeed;
-		else if (keyIsDown('y'))
-			spheres[selectedObject].center.y += moveSpeed;
-		if (keyIsDown(modifier) && keyIsDown('z'))
-			spheres[selectedObject].center.z -= moveSpeed;
-		else if (keyIsDown('z'))
-			spheres[selectedObject].center.z += moveSpeed;
+		if (selectedObjectType == 0)
+		{
+			// Movement
+			if (keyIsDown(modifier) && keyIsDown('x'))
+				spheres[selectedObject].center.x -= moveSpeed;
+			else if (keyIsDown('x'))
+				spheres[selectedObject].center.x += moveSpeed;
+			if (keyIsDown(modifier) && keyIsDown('y'))
+				spheres[selectedObject].center.y -= moveSpeed;
+			else if (keyIsDown('y'))
+				spheres[selectedObject].center.y += moveSpeed;
+			if (keyIsDown(modifier) && keyIsDown('z'))
+				spheres[selectedObject].center.z -= moveSpeed;
+			else if (keyIsDown('z'))
+				spheres[selectedObject].center.z += moveSpeed;
+		}
+		else if (selectedObjectType == 2)
+		{
+			// Movement
+			if (keyIsDown(modifier) && keyIsDown('x'))
+				lights[selectedObject].position.x -= moveSpeed;
+			else if (keyIsDown('x'))
+				lights[selectedObject].position.x += moveSpeed;
+			if (keyIsDown(modifier) && keyIsDown('y'))
+				lights[selectedObject].position.y -= moveSpeed;
+			else if (keyIsDown('y'))
+				lights[selectedObject].position.y += moveSpeed;
+			if (keyIsDown(modifier) && keyIsDown('z'))
+				lights[selectedObject].position.z -= moveSpeed;
+			else if (keyIsDown('z'))
+				lights[selectedObject].position.z += moveSpeed;
+
+			// Properties
+			float spotDelta = 0.2;
+			if (keyIsDown(modifier) && keyIsDown('e'))
+				lights[selectedObject].spot -= spotDelta;
+			else if (keyIsDown('e'))
+				lights[selectedObject].spot += spotDelta;
+
+			if (keyIsDown(modifier) && keyIsDown('r'))
+				lights[selectedObject].specularFactor -= spotDelta;
+			else if (keyIsDown('r'))
+				lights[selectedObject].specularFactor += spotDelta;
+
+			if (keyIsDown('1'))
+				lights[selectedObject].type = 0;
+			if (keyIsDown('2'))
+				lights[selectedObject].type = 1;
+			if (keyIsDown('3'))
+				lights[selectedObject].type = 2;
+		}
+		
+		
 		
 	}
 
@@ -144,6 +197,7 @@ void RayTracer::UpdateUniforms()
 		string intensity = "lightList[" + to_string(i) + "].intensity";
 		string type = "lightList[" + to_string(i) + "].type";
 		string spot = "lightList[" + to_string(i) + "].spot";
+		string specularFactor = "lightList[" + to_string(i) + "].specularFactor";
 		
 	
 		glUniform3f(glGetUniformLocation(computeProgram, pos.c_str()), lights[i].position.x, lights[i].position.y, lights[i].position.z);
@@ -152,6 +206,7 @@ void RayTracer::UpdateUniforms()
 		glUniform3f(glGetUniformLocation(computeProgram, intensity.c_str()), lights[i].intensity.x, lights[i].intensity.y, lights[i].intensity.z);
 		glUniform1i(glGetUniformLocation(computeProgram, type.c_str()), lights[i].type);
 		glUniform1f(glGetUniformLocation(computeProgram, spot.c_str()), lights[i].spot);
+		glUniform1f(glGetUniformLocation(computeProgram, specularFactor.c_str()), lights[i].specularFactor);
 	}
 
 	// Spheres
@@ -274,6 +329,26 @@ bool RayTracer::ClosestObjectIntersection(Ray ray, Hitinfo& hitinfo)
 				// Hitinfo...
 				hitinfo = tmpHitInfo;
 				hitinfo.index = i;
+				hitinfo.type = 0;
+				closest = tmpHitInfo.distance;
+				found = true;
+			}
+		}
+	}
+
+	for (int i = 0; i < lights.size(); i++)
+	{
+		Hitinfo tmpHitInfo;
+		vec3 pos = lights[i].position;
+		Sphere sphere(pos.x, pos.y, pos.z, 2, Material());
+		if (RaySphereIntersection(ray, sphere, tmpHitInfo))
+		{
+			if (tmpHitInfo.distance < closest)
+			{
+				// Hitinfo...
+				hitinfo = tmpHitInfo;
+				hitinfo.index = i;
+				hitinfo.type = 2;
 				closest = tmpHitInfo.distance;
 				found = true;
 			}
@@ -316,6 +391,7 @@ void RayTracer::MousePressed(int button, int state, int x, int y)
 		if (ClosestObjectIntersection(ray, hitinfo))
 		{
 			selectedObject = hitinfo.index;
+			selectedObjectType = hitinfo.type;
 		}
 	}
 }

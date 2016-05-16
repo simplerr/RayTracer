@@ -28,6 +28,7 @@ struct Light {
 	vec3 intensity;			// x = ambient, y = diffuse, z = specular
 	int type;				// 0 = directional, 1 = point light, 2 = spot light
 	float spot;
+	float specularFactor;
 };
 
 struct Box {
@@ -93,8 +94,8 @@ float side = 50.0;
 //};
 
 const Light lights[] = {
-	{vec3(side/2, 25, side/2), vec3(0, 0, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 1.0},
-	{vec3(side/2, 25, 25), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0.2, 1, 1), DIRECTIONAL_LIGHT, 10.0},
+	{vec3(side/2, 25, side/2), vec3(0, 0, 1), vec3(1, 1, 1), vec3(0.2, 1, 1), POINT_LIGHT, 1.0, 256},
+	{vec3(side/2, 25, 25), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0.2, 1, 1), DIRECTIONAL_LIGHT, 10.0, 256},
 	//{vec3(side/2, 25, 25), vec3(1, -1, 1), vec3(0, 1, 0), vec3(0.2, 1, 1), DIRECTIONAL_LIGHT, 10.0}
 };
 
@@ -288,9 +289,9 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 	return found;
 }
 
-bool IntersectLights(vec3 origin, vec3 dir, out float dist)
+bool IntersectLights(vec3 origin, vec3 dir, out hitinfo info)
 {
-	dist = MAX_SCENE_BOUNDS;
+	info.lambda = vec2(MAX_SCENE_BOUNDS, MAX_SCENE_BOUNDS);
 
 	for (int i = 0; i < numLights; i++) 
 	{
@@ -300,7 +301,9 @@ bool IntersectLights(vec3 origin, vec3 dir, out float dist)
 		Sphere sphere = {lightList[i].position, 1, {vec3(1, 0, 0), 1, true, 0}};
 		if(SphereIntersection(sphere, origin, dir, lambda))
 		{
-			dist = lambda.x;
+			info.lambda = lambda;
+			info.index = i;
+			info.type = 2;
 			return true;
 		}
 	}
@@ -319,28 +322,28 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	bool boxIntersection = intersectBoxes(origin, dir, boxInfo);
 
 	// [NOTE][TODO] Temporary
-	float lightDist = MAX_SCENE_BOUNDS;
-	bool lightIntersection = IntersectLights(origin, dir, lightDist);
+	hitinfo lightInfo;
+	bool lightIntersection = IntersectLights(origin, dir, lightInfo);
 
 	// No intersection
 	if(!sphereIntersection && !boxIntersection && !lightIntersection)
 		return false;
 
 	// A sphere is closest
-	if(sphereInfo.lambda.x < boxInfo.lambda.x && sphereInfo.lambda.x < lightDist)
+	if(sphereInfo.lambda.x < boxInfo.lambda.x && sphereInfo.lambda.x < lightInfo.lambda.x)
 	{
 		info = sphereInfo;
 		return true;
 	}
 	// A box is closest
-	else if(boxInfo.lambda.x < sphereInfo.lambda.x && boxInfo.lambda.x < lightDist)
+	else if(boxInfo.lambda.x < sphereInfo.lambda.x && boxInfo.lambda.x < lightInfo.lambda.x)
 	{
 		info = boxInfo;
 		return true;
 	}
 	else if(lightIntersection)
 	{
-		info.type = 2;
+		info = lightInfo;
 		return true;
 	}
 }
@@ -370,7 +373,7 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 	if(diffuseFactor > 0.0f)
 	{
 		vec3 v = reflect(-lightVec, normal);
-		float specularFactor = pow(max(dot(v, toEye), 0.0f), 256.0f);
+		float specularFactor = pow(max(dot(v, toEye), 0.0f), light.specularFactor);
 
 		diffuse = diffuseFactor * material * light.color * light.intensity.y;
 		specular = specularFactor * material * light.color * light.intensity.z;
@@ -386,7 +389,7 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 			spot = pow(max(dot(-lightVec, light.direction), 0.0f), light.spot);
 
 		// Attenuate
-		vec3 tmpAtt = vec3(0.001f);
+		vec3 tmpAtt = vec3(0.01f);
 		float att = spot / dot(tmpAtt, vec3(1.0f, lightDistance, lightDistance*lightDistance));	// light.att
 
 		ambient *= spot;
@@ -414,7 +417,7 @@ float ComputeShadow(Light light, vec3 position, int index)
 		vec3 aliasingDir = normalize(lightDirection  + vec3(2*rand(co) - 1, 2*rand(co) - 1, 2*rand(co) - 1) / vec3(10));
 
 		hitinfo tmpIntersectInfo;
-		if(closestObjectIntersection(aliasingPos + aliasingDir*1, aliasingDir, tmpIntersectInfo)) // && tmpIntersectInfo.index != index
+		if(closestObjectIntersection(aliasingPos + aliasingDir*1, aliasingDir, tmpIntersectInfo) && tmpIntersectInfo.type != 2) // [NOTE][TODO][HAX] The light source itself is an intersection, need to test against type == 2, bad!
 		{
 			// Obstructing object be infront of light source
 			if(dot(tmpIntersectInfo.intersection - light.position, aliasingDir) < 0)
@@ -433,7 +436,7 @@ vec3 CalculateColor(hitinfo intersectInfo)
 	vec3 finalColor = vec3(0);
 
 	if(intersectInfo.type == 2)	// Light
-		return vec3(1, 1, 0);
+		return lightList[intersectInfo.index].color;
 
 	for(int i = 0; i < numLights; i++)
 	{

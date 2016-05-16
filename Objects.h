@@ -8,6 +8,7 @@
 class Material
 {
 public:
+	Material();
 	Material(vec3 _color, float _reflectivity, int _isDiffuse, int _special = 0);
 	vec3 color;
 	float reflectivity;
@@ -25,6 +26,7 @@ public:
 	void SetIntensity(vec3 intensity);
 	void SetType(int type);
 	void SetSpot(float spot);
+	void SetSpecularFactor(float specularFactor);
 //private:
 
 	vec3 position;
@@ -33,6 +35,7 @@ public:
 	vec3 intensity;			// x = ambient, y = diffuse, z = specular
 	int type;				// 0 = directional, 1 = point light, 2 = spot light
 	float spot;
+	float specularFactor;
 };
 
 class Sphere

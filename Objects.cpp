@@ -6,6 +6,14 @@ Material::Material(vec3 _color, float _reflectivity, int _isDiffuse, int _specia
 	
 }
 
+Material::Material()
+{
+	color = vec3(1, 1, 1);
+	reflectivity = 1;
+	isDiffuse = true;
+	special = 0;
+}
+
 void Light::SetPosition(vec3 pos)
 {
 	position = pos;
@@ -34,6 +42,11 @@ void Light::SetType(int type)
 void Light::SetSpot(float spot)
 {
 	this->spot = spot;
+}
+
+void Light::SetSpecularFactor(float specularFactor)
+{
+	this->specularFactor = specularFactor;
 }
 
 Sphere::Sphere(float x, float y, float z, float _radius, Material _material) 

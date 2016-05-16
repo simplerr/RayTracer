@@ -28,6 +28,7 @@ struct Hitinfo
 {
 	float distance;
 	int index;		// Sphere index
+	int type;		// 0 = sphere, 1 = box, 2 = light
 };
 
 struct FrustumRays
@@ -85,6 +86,7 @@ private:
 	vector<Sphere> spheres;
 	vector<Box> boxes;
 
+	int selectedObjectType = -1;	// 0 = sphere, 1 = box, 2 = light
 	int selectedObject = -1;
 	float moveSpeed = 0.2f;
 };
