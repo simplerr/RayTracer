@@ -1,5 +1,11 @@
 #include "Objects.h"
 
+Material::Material(vec3 _color, float _reflectivity, int _isDiffuse)
+	: color(_color), reflectivity(_reflectivity), isDiffuse(_isDiffuse)
+{
+	
+}
+
 void Light::SetPosition(vec3 pos)
 {
 	position = pos;

@@ -12,6 +12,13 @@ uniform vec3 ray01;
 uniform vec3 ray10;
 uniform vec3 ray11;
 
+struct Material
+{
+	vec3 color;
+	float reflectivity;
+	bool isDiffuse;
+};
+
 // Light source
 struct Light {
 	vec3 position;
@@ -25,17 +32,18 @@ struct Light {
 struct Box {
 	vec3 min;
 	vec3 max;
-	vec3 material;
-	float reflectivity;
-	bool isDiffuse;
+	Material material;
+	//vec3 material;
+	//float reflectivity;
+	//bool isDiffuse;
 };
 
 struct Sphere {
 	vec3 center;
-	vec3 material;
 	float radius;
-	float reflectivity;
-	bool isDiffuse;
+	Material material;
+	//float reflectivity;
+	//bool isDiffuse;
 };
 
 #define DIRECTIONAL_LIGHT 0
@@ -67,20 +75,20 @@ uniform Box boxList[10];
 float side = 50.0;
 
 Box boxes[] = {
-	{vec3(0, -0.1, 0), vec3(side, 0.0, side), vec3(0.3, 0.3, 0.3), 1, true},
-	{vec3(0, side , 0), vec3(side, side-0.1, side), vec3(0.5, 0, 0), 0, true},
-	{vec3(-0.1, 0, 0), vec3(0, side, side), vec3(0, 0.5, 0), 0, true},
-	{vec3(side, 0, 0), vec3(side-0.1, side, side), vec3(0.0, 0.0, 0.5), 0, true},
-	{vec3(0, 0, -0.1), vec3(side, side, 0), vec3(0.5, 0.5, 0), 0, true},
-	{vec3(0, 0, side), vec3(side, side, side-0.1), vec3(0, 0.5, 0.5), 0, true},
-	{vec3(side/2, side/2, side/2), vec3(side/2 + 3, side/2 + 3, side/2 + 3), vec3(1, 1, 1), 1, false},
+	{vec3(0, -0.1, 0), vec3(side, 0.0, side), { vec3(0.3, 0.3, 0.3), 1, false }},
+	{vec3(0, side , 0), vec3(side, side-0.1, side), {vec3(0.5, 0, 0), 0, true}},
+	{vec3(-0.1, 0, 0), vec3(0, side, side), {vec3(0, 0.5, 0), 0, true}},
+	{vec3(side, 0, 0), vec3(side-0.1, side, side), {vec3(0.0, 0.0, 0.5), 0, true}},
+	{vec3(0, 0, -0.1), vec3(side, side, 0), {vec3(0.5, 0.5, 0), 0, true}},
+	{vec3(0, 0, side), vec3(side, side, side-0.1), {vec3(0, 0.5, 0.5), 0, true}},
+	{vec3(side/2, side/2, side/2), vec3(side/2 + 3, side/2 + 3, side/2 + 3), {vec3(1, 1, 1), 1, false}},
 };
 
 const Sphere spheres[] = {
-	{vec3(side/2 + 5, 8, side/2 + 5), vec3(1, 0, 0), 4, 1, false},
-	{vec3(side/2 - 10, 4, side/2 + 1), vec3(0, 0, 0), 2, 0, false},
-	{vec3(side/2 + 5, 11, side/2 + 1), vec3(0, 0, 1), 0.5, 1, false},
-	{vec3(side/2 + 10, 7, side/2 + 3), vec3(1, 1, 0), 0.5, 1, true}
+	{vec3(side/2 + 5, 8, side/2 + 5), 4, {vec3(1, 0, 0), 1, false}},
+	{vec3(side/2 - 10, 4, side/2 + 1), 3, {vec3(0, 0, 0), 0, false}},
+	{vec3(side/2 + 5, 11, side/2 + 1), 0.5, {vec3(0, 0, 1), 1, false}},
+	{vec3(side/2 + 10, 7, side/2 + 3), 0.5, {vec3(1, 1, 0), 1, true}}
 };
 
 const Light lights[] = {
@@ -177,11 +185,11 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 			info.index = i;
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = calculateBoxNormal(info.intersection, info.index);
-			info.material = boxes[i].material;	// [TODO]
+			info.material = boxList[i].material.color;	// [TODO]
 			info.type = 1;
 			info.eyeDirection = normalize(eye - info.intersection);
-			info.reflectivity = boxes[i].reflectivity;
-			info.isDiffuse = boxes[i].isDiffuse;
+			info.reflectivity = boxList[i].material.reflectivity;
+			info.isDiffuse = boxList[i].material.isDiffuse;
 
 			closest = lambda.x;
 			found = true;
@@ -231,10 +239,10 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = normalize(info.intersection - sphereList[info.index].center);
 			info.eyeDirection = normalize(eye - info.intersection);
-			info.material = spheres[info.index].material;
+			info.material = sphereList[info.index].material.color;
 			info.type = 0;
-			info.reflectivity = spheres[info.index].reflectivity;
-			info.isDiffuse = spheres[info.index].isDiffuse;
+			info.reflectivity = sphereList[info.index].material.reflectivity;
+			info.isDiffuse = sphereList[info.index].material.isDiffuse;
 
 			// Update the closest distance
 			closest = t0;

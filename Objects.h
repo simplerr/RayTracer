@@ -8,6 +8,7 @@
 class Material
 {
 public:
+	Material(vec3 _color, float _reflectivity, int _isDiffuse);
 	vec3 color;
 	float reflectivity;
 	int isDiffuse;
