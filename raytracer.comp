@@ -101,7 +101,7 @@ const Light lights[] = {
 struct hitinfo {
 	vec2 lambda;
 	int index;
-	int type;			// 0 = sphere, 1 = box
+	int type;			// 0 = sphere, 1 = box, 2 = light
 	vec3 intersection;
 	vec3 normal;
 	vec3 eyeDirection;
@@ -218,43 +218,57 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
 	return found;
 }
 
+bool SphereIntersection(Sphere sphere, vec3 origin, vec3 dir, out vec2 lambda)
+{
+	float t0, t1;
+
+	// geometric solution
+    vec3 L = sphere.center - origin; 
+    float tca = dot(L, dir); 
+    if (tca < 0) 
+		return false;
+
+    float d2 = dot(L, L) - tca * tca; 
+
+    if (d2 > pow(sphere.radius, 2)) 
+		return false;
+
+    float thc = sqrt(pow(sphere.radius, 2) - d2); 
+    t0 = tca - thc; 
+    t1 = tca + thc; 
+
+	if(t0 < 0)
+	{
+		float tmp = t0;
+		t0 = t1;
+		t1 = tmp;
+
+		if(t0 < 0)
+			return false;
+	}
+
+	if (t0 > 0.0 && t0 < t1)
+	{
+		lambda.x = t0;
+		lambda.y = t1;
+		return true;
+	}
+
+	return false;
+}
+
 bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 	info.lambda = vec2(MAX_SCENE_BOUNDS, MAX_SCENE_BOUNDS);
 	float closest = MAX_SCENE_BOUNDS;
 	bool found = false;
 	for (int i = 0; i < numSpheres; i++) 
 	{
-		float t0, t1;
-
-		// geometric solution
-        vec3 L = sphereList[i].center - origin; 
-        float tca = dot(L, dir); 
-        if (tca < 0) 
-			continue;
-
-        float d2 = dot(L, L) - tca * tca; 
-
-        if (d2 > pow(sphereList[i].radius, 2)) 
-			continue;
-
-        float thc = sqrt(pow(sphereList[i].radius, 2) - d2); 
-        t0 = tca - thc; 
-        t1 = tca + thc; 
-
-		if(t0 < 0)
-		{
-			float tmp = t0;
-			t0 = t1;
-			t1 = tmp;
-
-			if(t0 < 0)
-				continue;
-		}
+		vec2 lambda;
 
 		// Is it the closest sphere?
-		if(t0 > 0.0 && t0 < t1 && t0 < closest) {
+		if(SphereIntersection(sphereList[i], origin, dir, lambda) && lambda.x < closest) {
 			// Calculate hit information
-			info.lambda = vec2(t0, t1);
+			info.lambda = lambda;//vec2(t0, t1);
 			info.index = i;
 			info.intersection = origin + dir * info.lambda.x;
 			info.normal = normalize(info.intersection - sphereList[info.index].center);
@@ -265,13 +279,30 @@ bool intersectSpheres(vec3 origin, vec3 dir, out hitinfo info) {
 			info.isDiffuse = sphereList[info.index].material.isDiffuse;
 
 			// Update the closest distance
-			closest = t0;
+			closest = lambda.x;
 		}
 
 		found = true;
 	}
 
 	return found;
+}
+
+bool IntersectLights(vec3 origin, vec3 dir)
+{
+	for (int i = 0; i < numLights; i++) 
+	{
+		vec2 lambda;
+
+		// Is it the closest sphere?
+		Sphere sphere = {lightList[i].position, 20, {vec3(1, 0, 0), 1, true, 0}};
+		if(SphereIntersection(sphere, origin, dir, lambda))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
@@ -284,8 +315,11 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	hitinfo boxInfo;
 	bool boxIntersection = intersectBoxes(origin, dir, boxInfo);
 
+	// [NOTE][TODO] Temporary
+	bool lightIntersection = IntersectLights(origin, dir);
+
 	// No intersection
-	if(!sphereIntersection && !boxIntersection)
+	if(!sphereIntersection && !boxIntersection && !lightIntersection)
 		return false;
 
 	// A sphere is closest
@@ -298,6 +332,11 @@ bool closestObjectIntersection(vec3 origin, vec3 dir, out hitinfo info)
 	else if(boxInfo.lambda.x < sphereInfo.lambda.x)
 	{
 		info = boxInfo;
+		return true;
+	}
+	else if(lightIntersection)
+	{
+		info.type = 2;
 		return true;
 	}
 }
@@ -389,6 +428,9 @@ vec3 CalculateColor(hitinfo intersectInfo)
 {
 	vec3 finalColor = vec3(0);
 
+	if(intersectInfo.type == 2)	// Light
+		return vec3(1);
+
 	for(int i = 0; i < numLights; i++)
 	{
 		vec3 ambient = vec3(0.0);
@@ -428,7 +470,7 @@ vec3 RayTrace(Ray ray)
 		if(closestObjectIntersection(stack[currentNode].ray.origin, stack[currentNode].ray.direction, intersectInfo)) 
 		{
 			// Only create new rays if max depth isn't exceeded
-			if(!intersectInfo.isDiffuse && stack[currentNode].depth < maxTraceDepth) // && 0 == 1
+			if(!intersectInfo.isDiffuse && intersectInfo.type != 2 && stack[currentNode].depth < maxTraceDepth) // && 0 == 1
 			{
 				//stack[currentNode].color = vec3(1, 0, 0);
 				stack[currentNode].isDiffuse = false;
