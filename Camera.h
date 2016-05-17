@@ -5,11 +5,11 @@
 class Camera
 {
 public:
-	Camera(vec3 _pos, vec3 _target, vec3 _up, float _speed, float _pitch, float _yaw, int _windowWidth, int _windowHeight);
-	Camera(int _windowWidth, int _windowHeight);
+	Camera(vec3 _pos, vec3 _target, float _speed, int _windowWidth, int _windowHeight);
 
 	void Update(int value);
 	void MouseMove(int x, int y);
+	void MousePressed(int button, int state, int x, int y);
 
 	vec3 position;
 	vec3 target;
@@ -20,4 +20,7 @@ public:
 
 	int windowWidth;
 	int windowHeight;
+
+	int last_x;
+	int last_y;
 };

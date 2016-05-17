@@ -19,6 +19,7 @@ static float quadData[] = {
 
 struct Ray
 {
+	Ray() {}
 	Ray(vec3 o, vec3 d) : origin(o), direction(d) {}
 	vec3 origin;
 	vec3 direction;
@@ -26,9 +27,12 @@ struct Ray
 
 struct Hitinfo
 {
+	Hitinfo() : ray(vec3(0, 0, 0), vec3(0,0, 0)) {}
+	Ray ray;
 	float distance;
 	int index;		// Sphere index
 	int type;		// 0 = sphere, 1 = box, 2 = light
+	vec3 centerOffset;
 };
 
 struct FrustumRays
@@ -86,7 +90,11 @@ private:
 	vector<Sphere> spheres;
 	vector<Box> boxes;
 
-	int selectedObjectType = -1;	// 0 = sphere, 1 = box, 2 = light
-	int selectedObject = -1;
+	Hitinfo selectedHitInfo;
+	//int selectedObjectType = -1;	// 0 = sphere, 1 = box, 2 = light
+	//int selectedObject = -1;
 	float moveSpeed = 0.2f;
+
+	bool isMovingObject = false;
+	Ray previousRay;
 };

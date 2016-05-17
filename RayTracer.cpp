@@ -19,13 +19,7 @@ RayTracer::~RayTracer()
 void RayTracer::Init()
 {
 	// Init camera
-	camera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
-	camera->position = vec3(3, 20, 7);
-	camera->target = vec3(0, 0.5, 0);
-	camera->up = vec3(0, 1, 0);
-	camera->speed = 0.3f;
-	camera->pitch = 0.0f;
-	camera->yaw = -3.14f / 2.0f;
+	camera = new Camera(vec3(3, 20, 7), vec3(25, 0, 25), 0.3f, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	glutWarpPointer(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
@@ -111,12 +105,33 @@ void RayTracer::Update(int value)
 	UpdateUniforms();
 
 	// Update the selected object
-	if (selectedObject != -1)
+	if (selectedHitInfo.index != -1)
 	{
 		char modifier = 'q';
-		if (selectedObjectType == 0)
+		if (selectedHitInfo.type == 0)
 		{
-			// Movement
+			int selectedObject = selectedHitInfo.index;
+			// Move obejct with the mouse
+			if (isMovingObject)
+			{
+				HWND hwnd = GetForegroundWindow();
+				POINT point;
+				GetCursorPos(&point);
+				ScreenToClient(hwnd, &point);
+				Ray ray = GetWorldPickingRay(point.x, point.y);
+
+				vec3 newPos = camera->position + selectedHitInfo.centerOffset + selectedHitInfo.distance * ray.direction;
+
+				spheres[selectedObject].center = newPos;
+
+				vec3 delta = ray.direction - previousRay.direction;
+
+				previousRay = ray;
+			}
+
+
+			// 
+		
 			if (keyIsDown(modifier) && keyIsDown('x'))
 				spheres[selectedObject].center.x -= moveSpeed;
 			else if (keyIsDown('x'))
@@ -130,9 +145,29 @@ void RayTracer::Update(int value)
 			else if (keyIsDown('z'))
 				spheres[selectedObject].center.z += moveSpeed;
 		}
-		else if (selectedObjectType == 2)
+		else if (selectedHitInfo.type == 2)
 		{
 			// Movement
+			int selectedObject = selectedHitInfo.index;
+
+			// Move obejct with the mouse
+			if (isMovingObject)
+			{
+				HWND hwnd = GetForegroundWindow();
+				POINT point;
+				GetCursorPos(&point);
+				ScreenToClient(hwnd, &point);
+				Ray ray = GetWorldPickingRay(point.x, point.y);
+
+				vec3 newPos = camera->position + selectedHitInfo.centerOffset + selectedHitInfo.distance * ray.direction;
+
+				lights[selectedObject].position = newPos;
+
+				vec3 delta = ray.direction - previousRay.direction;
+
+				previousRay = ray;
+			}
+
 			if (keyIsDown(modifier) && keyIsDown('x'))
 				lights[selectedObject].position.x -= moveSpeed;
 			else if (keyIsDown('x'))
@@ -165,9 +200,6 @@ void RayTracer::Update(int value)
 			if (keyIsDown('3'))
 				lights[selectedObject].type = 2;
 		}
-		
-		
-		
 	}
 
 	// Eye and frustum rays
@@ -330,6 +362,8 @@ bool RayTracer::ClosestObjectIntersection(Ray ray, Hitinfo& hitinfo)
 				hitinfo = tmpHitInfo;
 				hitinfo.index = i;
 				hitinfo.type = 0;
+				hitinfo.ray = ray;
+				hitinfo.centerOffset = spheres[i].center - (ray.origin + ray.direction * hitinfo.distance);
 				closest = tmpHitInfo.distance;
 				found = true;
 			}
@@ -349,6 +383,8 @@ bool RayTracer::ClosestObjectIntersection(Ray ray, Hitinfo& hitinfo)
 				hitinfo = tmpHitInfo;
 				hitinfo.index = i;
 				hitinfo.type = 2;
+				hitinfo.ray = ray;
+				hitinfo.centerOffset = lights[i].position - (ray.origin + ray.direction * hitinfo.distance);
 				closest = tmpHitInfo.distance;
 				found = true;
 			}
@@ -383,6 +419,8 @@ Ray RayTracer::GetWorldPickingRay(int x, int y)
 
 void RayTracer::MousePressed(int button, int state, int x, int y)
 {
+	camera->MousePressed(button, state, x, y);
+
 	// Find intersecting sphere
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 	{
@@ -390,15 +428,23 @@ void RayTracer::MousePressed(int button, int state, int x, int y)
 		Hitinfo hitinfo;
 		if (ClosestObjectIntersection(ray, hitinfo))
 		{
-			selectedObject = hitinfo.index;
-			selectedObjectType = hitinfo.type;
+			/*selectedObject = hitinfo.index;
+			selectedObjectType = hitinfo.type;*/
+			selectedHitInfo = hitinfo;
+			isMovingObject = true;
+			previousRay = ray;
 		}
+	}
+
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP)
+	{
+		isMovingObject = false;
 	}
 }
 
 void RayTracer::MouseMove(int x, int y)
 {
-	camera->MouseMove(x, y);
+	//camera->MouseMove(x, y);
 }
 
 void RayTracer::CalculateRays()
