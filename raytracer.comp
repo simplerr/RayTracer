@@ -368,6 +368,7 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 	ambient = material * light.color * light.intensity.x;		// [TODO]  Add light color
 			
 	// Diffuse
+	normal = normalize(normal);
 	float diffuseFactor = dot(lightVec, normal);
 
 	if(diffuseFactor > 0.0f)
@@ -389,7 +390,7 @@ void ComputeLighting(vec3 material, Light light, vec3 intersection, vec3 normal,
 			spot = pow(max(dot(-lightVec, light.direction), 0.0f), light.spot);
 
 		// Attenuate
-		vec3 tmpAtt = vec3(0.01f);
+		vec3 tmpAtt = vec3(0.01f, 0.001, .005);
 		float att = spot / dot(tmpAtt, vec3(1.0f, lightDistance, lightDistance*lightDistance));	// light.att
 
 		ambient *= spot;
@@ -479,7 +480,8 @@ vec3 RayTrace(Ray ray)
 			// Only create new rays if max depth isn't exceeded
 			if(!intersectInfo.isDiffuse && intersectInfo.type != 2 && stack[currentNode].depth < maxTraceDepth) // && 0 == 1
 			{
-				//stack[currentNode].color = vec3(1, 0, 0);
+				// [TODO] Compute the diffuse color even if it reflects and refracts
+				stack[currentNode].color = CalculateColor(intersectInfo);
 				stack[currentNode].isDiffuse = false;
 				stack[currentNode].refraction = 1.0;
 				stack[currentNode].reflection = intersectInfo.reflectivity;
@@ -501,7 +503,7 @@ vec3 RayTrace(Ray ray)
 				// Two new rays added
 				numNodes += 2;
 
-				// [TODO] Compute the diffuse color even if it reflects and refracts
+				
 			}
 			// Max depth reached or 100% diffuse, calculate color
 			else
@@ -527,7 +529,7 @@ vec3 RayTrace(Ray ray)
 		// [NOTE] Missing somehting here	
 		// [TODO] This should also combine refraction and reflection
 		if(!stack[child].isDiffuse)
-			color = stack[child].refractionColor * (1.0 - stack[child].reflection) + stack[child].reflectionColor * stack[child].reflection;
+			color = stack[child].color + stack[child].refractionColor * (1.0 - stack[child].reflection) + stack[child].reflectionColor * stack[child].reflection;
 
 		if(stack[child].ray.type == REFLECTION_RAY)
 			stack[parent].reflectionColor = color;
@@ -542,7 +544,7 @@ vec3 RayTrace(Ray ray)
 	{
 		// Fresnel equation
 		//return primaryNode.refractionColor;//vec3(1, 0, 0);//primaryNode.color;
-		return primaryNode.refractionColor * (1.0 - primaryNode.reflection) + primaryNode.reflectionColor * primaryNode.reflection;
+		return primaryNode.color + primaryNode.refractionColor * (1.0 - primaryNode.reflection) + primaryNode.reflectionColor * primaryNode.reflection;
 	}
 
 	//return vec4(stack[0].color, 1.0);

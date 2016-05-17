@@ -63,7 +63,7 @@ void RayTracer::InitObjects()
 	light1.SetDirection(vec3(0, -1, 0));
 	light1.SetColor(vec3(1, 1, 1));
 	light1.SetIntensity(vec3(0.2, 1, 1));
-	light1.SetType(SPOT_LIGHT);
+	light1.SetType(POINT_LIGHT);
 	light1.SetSpot(1.0f);
 	light1.SetSpecularFactor(1.0f);
 	lights.push_back(light1);
@@ -77,7 +77,7 @@ void RayTracer::InitObjects()
 	light2.SetType(POINT_LIGHT);
 	light2.SetSpot(1.0f);
 	light2.SetSpecularFactor(1.0f);
-	lights.push_back(light2);
+	//lights.push_back(light2);
 
 	// Add spheres
 	spheres.push_back(Sphere(roomSize / 2 + 5, 8, roomSize / 2 + 5, 4, Material(vec3(1, 0, 0), 1, false)));
@@ -128,22 +128,6 @@ void RayTracer::Update(int value)
 
 				previousRay = ray;
 			}
-
-
-			// 
-		
-			if (keyIsDown(modifier) && keyIsDown('x'))
-				spheres[selectedObject].center.x -= moveSpeed;
-			else if (keyIsDown('x'))
-				spheres[selectedObject].center.x += moveSpeed;
-			if (keyIsDown(modifier) && keyIsDown('y'))
-				spheres[selectedObject].center.y -= moveSpeed;
-			else if (keyIsDown('y'))
-				spheres[selectedObject].center.y += moveSpeed;
-			if (keyIsDown(modifier) && keyIsDown('z'))
-				spheres[selectedObject].center.z -= moveSpeed;
-			else if (keyIsDown('z'))
-				spheres[selectedObject].center.z += moveSpeed;
 		}
 		else if (selectedHitInfo.type == 2)
 		{
@@ -168,19 +152,8 @@ void RayTracer::Update(int value)
 				previousRay = ray;
 			}
 
-			if (keyIsDown(modifier) && keyIsDown('x'))
-				lights[selectedObject].position.x -= moveSpeed;
-			else if (keyIsDown('x'))
-				lights[selectedObject].position.x += moveSpeed;
-			if (keyIsDown(modifier) && keyIsDown('y'))
-				lights[selectedObject].position.y -= moveSpeed;
-			else if (keyIsDown('y'))
-				lights[selectedObject].position.y += moveSpeed;
-			if (keyIsDown(modifier) && keyIsDown('z'))
-				lights[selectedObject].position.z -= moveSpeed;
-			else if (keyIsDown('z'))
-				lights[selectedObject].position.z += moveSpeed;
-
+			//if (keyIsDown(modifier) && keyIsDown('x'))
+			
 			// Properties
 			float spotDelta = 0.2;
 			if (keyIsDown(modifier) && keyIsDown('e'))
