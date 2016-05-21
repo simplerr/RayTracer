@@ -65,6 +65,8 @@ int main(int argc, char *argv[])
 	}
 	printf("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
+	const GLubyte* text = glGetString(GL_EXTENSIONS);
+	
 	glutTimerFunc(20, &OnTimer, 0);
 	glutPassiveMotionFunc(&MouseMove);
 	glutMouseFunc(&MousePressed);

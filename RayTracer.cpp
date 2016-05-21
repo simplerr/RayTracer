@@ -71,13 +71,13 @@ void RayTracer::InitObjects()
 	// Add lights
 	Light light2;
 	light2.SetPosition(vec3(5, 15, 5));
-	light2.SetDirection(vec3(1, -1, 1));
+	light2.SetDirection(vec3(0, -1, 0));
 	light2.SetColor(vec3(1, 1, 1));
 	light2.SetIntensity(vec3(0.2, 1, 1));
-	light2.SetType(POINT_LIGHT);
+	light2.SetType(SPOT_LIGHT);
 	light2.SetSpot(1.0f);
 	light2.SetSpecularFactor(1.0f);
-	//lights.push_back(light2);
+	lights.push_back(light2);
 
 	// Add spheres
 	spheres.push_back(Sphere(roomSize / 2 + 5, 8, roomSize / 2 + 5, 4, Material(vec3(1, 0, 0), 1, false)));
@@ -127,6 +127,17 @@ void RayTracer::Update(int value)
 				vec3 delta = ray.direction - previousRay.direction;
 
 				previousRay = ray;
+			}
+
+			if (keyIsDown('1'))
+				spheres[selectedObject].material.isDiffuse = true;
+			if (keyIsDown('2')) {
+				spheres[selectedObject].material.isDiffuse = false;
+				spheres[selectedObject].material.reflectivity = 1;
+			}
+			if (keyIsDown('3')) {
+				spheres[selectedObject].material.isDiffuse = false;
+				spheres[selectedObject].material.reflectivity = 0;
 			}
 		}
 		else if (selectedHitInfo.type == 2)
